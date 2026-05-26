@@ -76,7 +76,7 @@ http://localhost:8000/ を開いてください。
 純粋関数（フィルタ式、ユーティリティ、波形ヒット判定など）にユニットテストがあります。
 
 ```bash
-npm test    # node --test web/*.test.js (56 ケース)
+npm test    # node --test web/*.test.js (63 ケース)
 ```
 
 ソースの構成・命名規則・依存関係は [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) を参照。

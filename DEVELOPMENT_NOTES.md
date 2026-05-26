@@ -17,14 +17,14 @@
 
 | File | Lines | 役割 |
 |------|-------|------|
-| `preview.js` | 654 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。ジャンプボタン (jumps[]) は config 配列で柔軟に |
-| `app.js` | 576 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群 |
-| `waveform.js` | 423 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
-| `mix.js` | 417 | `FfmpegRuntime` クラス、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別) と分割されたステップ関数群 |
+| `app.js` | 817 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群、modal focus trap、localStorage 永続化、D&D、ステッパー注入 |
+| `preview.js` | 692 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。jumps[] config で任意位置へジャンプ、ハンドル focus highlight 連動 |
+| `waveform.js` | 513 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替、時刻軸、focus halo。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
+| `mix.js` | 438 | `FfmpegRuntime` クラス (load promise + exec queue で直列化)、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別) |
 | `filter.js` | 205 | `buildFilter` / `buildOpeningPreviewFilter` / `buildEndingPreviewFilter` + envelope ヘルパー。Node からテスト可能 |
-| `dom.js` | 127 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
-| `waveform-loader.js` | 84 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード) |
-| `utils.js` | 71 | 純粋関数 + JSDoc 型注釈付き |
+| `dom.js` | 128 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
+| `utils.js` | 98 | 純粋関数 + JSDoc 型注釈付き (parse 系 / clamp / clampRange / formatTime / extFromName / isNetworkLikeError) |
+| `waveform-loader.js` | 84 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード、try/finally cleanup) |
 
 すべての JS ファイル冒頭に `// @ts-check` を付けて、JSDoc 型注釈で TS-aware エディタ上で型補完 + エラー検知が効くようになっている。
 
@@ -47,10 +47,10 @@ utils.js ──┬──────────┤
 
 ## Tests
 
-`web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (56 ケース)。
+`web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (63 ケース)。
 
 - `web/filter.test.js` — buildFilter / buildOpeningPreviewFilter / buildEndingPreviewFilter のロジック + 構造アサーション
-- `web/utils.test.js` — parse / clamp / formatTime / extFromName
+- `web/utils.test.js` — parse / clamp / clampRange / formatTime / extFromName / isNetworkLikeError
 - `web/waveform.test.js` — handle positions / hit-tests / trim handles (canvas mock)
 
 ## 音声処理チェーン
@@ -185,15 +185,15 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 
 ### P2
 
-- **進捗メッセージの細分化** — `ffmpeg コア読込` / `波形解析` / `プレビュー準備` / `ミックスレンダリング` / `mp3 書き出し` を別ステータスで表示
-- **アクセシビリティ** — `form` / `fieldset` / `legend` でフォームグルーピング。波形ドラッグ操作のキーボード代替手段
+- ~~**進捗メッセージの細分化**~~ ✅ 完了 (2026-05)。ステージごとに setStatus + ffmpeg の onProgress を読んで `音声処理中... 35%` のように表示
+- **アクセシビリティ** — `form` / `fieldset` / `legend` でフォームグルーピング (一部対応: modal focus trap、ハンドル focus halo、jump ボタン aria-label)
 - **preview 音源のクリーンアップ** — オブジェクト URL のライフサイクルをファイル切替時 / 反復再生時の観点で再点検
 
 ### P3
 
-- D&D アップロード
-- 波形に時刻ティック / マーカー表示
-- 直近の設定値を `localStorage` に保存
+- ~~D&D アップロード~~ ✅ 完了 (2026-05)。各 file card に drop/dragover で受け入れ
+- ~~波形に時刻ティック / マーカー表示~~ ✅ 完了 (2026-05)。canvas 下にスクロール連動の時刻軸 (1s〜600s の interval を自動選択)
+- ~~直近の設定値を `localStorage` に保存~~ ✅ 完了 (2026-05)。`wraptalk:settings:v1` キーで保存・復元
 
 ## 検討して見送った変更
 
@@ -264,6 +264,26 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 - 2026-05: フッター追加 (© FjordBootCamp + View on GitHub リンク)
 - 2026-05: MIT ライセンス追加 → OSS 化
 - 2026-05: Cloudflare Pages デプロイ。`_headers` で COOP/COEP、`@ffmpeg/core` を jsDelivr CDN、`vendor/` で `@ffmpeg/ffmpeg`+`util` をコミット。`npm run build` で `dist/` 生成
+- 2026-05: トーク試聴に末尾ジャンプボタン (⏭) 追加。jumps config に `target: "end"` の特別値を追加
+- 2026-05: モーダル focus trap 実装。開く前の active 要素を保存、Tab を内部循環、閉じたら戻す
+- 2026-05: CDN/ネットワーク障害時のエラー文言改善 (`isNetworkLikeError` で判別)
+- 2026-05: 設定値の localStorage 永続化 (`wraptalk:settings:v1`)。trim と file 選択を除く全数値入力 + MP3 bitrate radio を保存・復元
+- 2026-05: D&D ファイル受け取り。各 c--media-panel に drop/dragover 配線
+- 2026-05: 進捗 % をステータスに表示 (`音声処理中... 35%`)。`renderStatus(base, percent)` ヘルパー
+- 2026-05: 波形に時刻軸 (`.c--waveform-time-axis`)。canvas のスクロール領域にスクロール連動、interval は zoom に応じて自動選択
+- 2026-05: 入力フォーカス時のハンドル halo 強調。focusedHandle を controller に持たせ、`drawFocusHalo` で発光
+- 2026-05: 波形の再生位置縦線を黒 → 白に変更 (ダークモード視認性)
+- 2026-05: クランプ範囲入力検証 (`clampRange`) + ネットワークエラー判定 (`isNetworkLikeError`) を utils に移動、テスト 7 件追加
+- 2026-05: preview の renderWaveform に token 機能を追加 (file 切替時の race condition 対策)
+- 2026-05: waveform-loader の ffmpeg cleanup を try/finally に
+- 2026-05: 数値入力のネイティブスピンを非表示、JS で attached なステッパー (`±`) を全数値 input にラッピング
+- 2026-05: .l--inline-setting をラベル上 / 入力 + ◉ ボタン下の構造に明示化 (`.l--inline-setting-controls` 追加)。flex-wrap の暗黙挙動依存を解消
+- 2026-05: 使用範囲・フェードに `〜` セパレータ (flex:1 で中央寄せ)
+- 2026-05: 設定カード幅 360 → 400px、MP3 ビットレートラジオを横並びに
+- 2026-05: package.json に "type": "module" を追加 (node --test の警告抑制)
+- 2026-05: FfmpegRuntime を直列化。`#loadPromise` で並行 load を共有、`#queue` で write/exec/read を順次実行 (波形 decode と export の競合を防止)
+- 2026-05: renderTimeAxis をキャッシュ (duration/width/interval キー)、timeupdate での DOM 再構築をスキップ
+- 2026-05: podcast_auto.sh の冒頭にレガシー注記を追加 (ブラウザ版とは音声処理が違う旨)
 
 ## Open Questions
 
