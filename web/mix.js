@@ -88,41 +88,53 @@ class FfmpegRuntime {
   }
 
   // Acquire exclusive access for a multi-step ffmpeg flow. fn receives a
-  // session object exposing writeFile / exec / readFile / cleanupFiles.
-  // The session is only valid while fn is awaiting — callers can't stash
-  // it and reuse it later from outside the lock — so there is no way to
-  // hit the underlying ffmpeg worker outside of an active lock.
+  // session that exposes writeFile / exec / readFile / deleteFile /
+  // cleanupFiles. The session is invalidated when fn settles, so callers
+  // can't stash it and use it outside the lock.
   withLock(fn) {
     const previous = this.#mutex;
     const next = previous.then(() => {
-      const instance = this.#instance;
-      let valid = true;
-      const guard = (method) => {
-        if (!valid) {
-          throw new Error(`ffmpeg session has ended; ${method}() must be called inside the same withLock() callback`);
-        }
-      };
-      const session = {
-        writeFile: (name, data) => { guard("writeFile"); return instance.writeFile(name, data); },
-        exec: (args) => { guard("exec"); return instance.exec(args); },
-        readFile: (name) => { guard("readFile"); return instance.readFile(name); },
-        deleteFile: async (name) => {
-          guard("deleteFile");
-          try { await instance.deleteFile(name); } catch { /* best effort */ }
-        },
-        cleanupFiles: async (names) => {
-          guard("cleanupFiles");
-          for (const name of names) {
-            try { await instance.deleteFile(name); } catch { /* best effort */ }
-          }
-        },
-      };
+      const session = this.#createSession();
       return Promise.resolve(fn(session)).finally(() => {
-        valid = false;
+        session.__invalidate();
       });
     });
     this.#mutex = next.catch(() => {});
     return next;
+  }
+
+  // A short-lived facade over the underlying ffmpeg instance. The guard
+  // closure flips on __invalidate() so any call made after the owning
+  // withLock callback has settled throws instead of silently sneaking
+  // through to the shared worker.
+  #createSession() {
+    const instance = this.#instance;
+    let valid = true;
+    const guard = (method) => {
+      if (!valid) {
+        throw new Error(`ffmpeg session has ended; ${method}() must be called inside the same withLock() callback`);
+      }
+    };
+    const tryDelete = async (name) => {
+      try {
+        await instance.deleteFile(name);
+      } catch {
+        // Best effort cleanup; the file may not exist or be already gone.
+      }
+    };
+    return {
+      writeFile: (name, data) => { guard("writeFile"); return instance.writeFile(name, data); },
+      exec: (args) => { guard("exec"); return instance.exec(args); },
+      readFile: (name) => { guard("readFile"); return instance.readFile(name); },
+      deleteFile: (name) => { guard("deleteFile"); return tryDelete(name); },
+      cleanupFiles: async (names) => {
+        guard("cleanupFiles");
+        for (const name of names) {
+          await tryDelete(name);
+        }
+      },
+      __invalidate: () => { valid = false; },
+    };
   }
 }
 

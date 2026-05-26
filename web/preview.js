@@ -301,8 +301,11 @@ export class PreviewController {
       audio.addEventListener("error", onError);
     });
 
-    if (token !== previewSession.currentToken()) {
-      return;
+    // Bail out when a later prepare() / handleSourceChange has superseded us.
+    // currentToken catches a second prepare(); this.audio !== audio catches
+    // handleSourceChange clearing the audio while we were awaiting metadata.
+    if (token !== previewSession.currentToken() || this.audio !== audio) {
+      throw new Error("aborted");
     }
 
     this.updateUI();
@@ -314,9 +317,11 @@ export class PreviewController {
     }
     try {
       await this.prepare();
-      return true;
+      return this.audio != null;
     } catch (error) {
-      logFromError(error);
+      if (!(error instanceof Error && error.message === "aborted")) {
+        logFromError(error);
+      }
       return false;
     }
   }
@@ -337,12 +342,17 @@ export class PreviewController {
       try {
         await this.prepare();
       } catch (error) {
-        logFromError(error);
+        if (!(error instanceof Error && error.message === "aborted")) {
+          logFromError(error);
+        }
         return;
       }
     }
 
     const audio = this.audio;
+    if (!audio) {
+      return; // file swapped during prepare(); nothing to play
+    }
     previewSession.activate(this, audio);
     this.updateUI();
 
@@ -629,6 +639,9 @@ export class PreviewController {
   }
 
   handleSourceChange() {
+    // Bump the token so any in-flight prepare() detects the change and aborts
+    // before reaching back into our (now nulled) audio reference.
+    previewSession.nextToken();
     if (previewSession.activeController === this) {
       previewSession.stop();
     }
