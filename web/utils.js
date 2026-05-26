@@ -69,3 +69,30 @@ export function extFromName(name, fallback) {
   }
   return name.slice(dot + 1).toLowerCase();
 }
+
+/**
+ * Validate that `value` is inside the inclusive `[min, max]` range. Throws a
+ * labeled Error when not. Returns `value` unchanged so the call can be inlined.
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @param {string} label
+ * @returns {number}
+ */
+export function clampRange(value, min, max, label) {
+  if (value < min || value > max) {
+    throw new Error(`${label}は ${min}〜${max} の範囲で入力してください (現在: ${value})`);
+  }
+  return value;
+}
+
+/**
+ * Heuristic: does this error look like a network / CDN failure rather than a
+ * filter / runtime issue? Used to switch ffmpeg.wasm load failure messaging.
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+export function isNetworkLikeError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /fetch|network|failed to load|err_internet|err_network/i.test(message);
+}

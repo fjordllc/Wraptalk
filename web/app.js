@@ -10,6 +10,8 @@ import {
   runMix,
 } from "./mix.js";
 import {
+  clampRange,
+  isNetworkLikeError,
   parseNumberInput,
   parseOptionalNumber,
   parseRequiredNumber,
@@ -234,13 +236,6 @@ async function handleLoadFFmpeg() {
   setStatus("準備完了");
 }
 
-function clampRange(value, min, max, label) {
-  if (value < min || value > max) {
-    throw new Error(`${label}は ${min}〜${max} の範囲で入力してください (現在: ${value})`);
-  }
-  return value;
-}
-
 async function readMixSpec() {
   const input = requireFile(inputFile, "トーク音源");
   const intro = await resolveAudioInput(introFile, DEFAULT_INTRO_URL, DEFAULT_INTRO_NAME, "イントロ音源");
@@ -396,11 +391,6 @@ document.addEventListener("keydown", (event) => {
     trapFocus(actionModal, event);
   }
 });
-
-function isNetworkLikeError(error) {
-  const message = error instanceof Error ? error.message : String(error);
-  return /fetch|network|failed to load|err_internet|err_network/i.test(message);
-}
 
 loadButton.addEventListener("click", async () => {
   openActionModal();

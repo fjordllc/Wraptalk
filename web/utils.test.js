@@ -3,8 +3,10 @@ import { test } from "node:test";
 
 import {
   clamp01,
+  clampRange,
   extFromName,
   formatTime,
+  isNetworkLikeError,
   parseNumberInput,
   parseOptionalNumber,
   parseRequiredNumber,
@@ -107,4 +109,50 @@ test("extFromName: no dot returns fallback", () => {
 
 test("extFromName: multi-dot keeps last segment", () => {
   assert.equal(extFromName("foo.bar.baz.mp3", "x"), "mp3");
+});
+
+test("clampRange: returns value when inside range", () => {
+  assert.equal(clampRange(0.5, 0, 1, "音量"), 0.5);
+  assert.equal(clampRange(0, 0, 1, "音量"), 0);
+  assert.equal(clampRange(1, 0, 1, "音量"), 1);
+});
+
+test("clampRange: throws labeled error when below min", () => {
+  assert.throws(
+    () => clampRange(-0.1, 0, 1, "音量"),
+    /音量は 0〜1 の範囲で入力してください \(現在: -0\.1\)/,
+  );
+});
+
+test("clampRange: throws labeled error when above max", () => {
+  assert.throws(
+    () => clampRange(101, 0, 100, "ducking レベル"),
+    /ducking レベルは 0〜100 の範囲で入力してください \(現在: 101\)/,
+  );
+});
+
+test("clampRange: negative ranges work", () => {
+  assert.equal(clampRange(-16, -40, -8, "LUFS"), -16);
+  assert.throws(() => clampRange(-5, -40, -8, "LUFS"));
+  assert.throws(() => clampRange(-41, -40, -8, "LUFS"));
+});
+
+test("isNetworkLikeError: matches typical fetch failures", () => {
+  assert.equal(isNetworkLikeError(new Error("Failed to fetch")), true);
+  assert.equal(isNetworkLikeError(new Error("NetworkError when attempting")), true);
+  assert.equal(isNetworkLikeError(new Error("Failed to load module")), true);
+  assert.equal(isNetworkLikeError(new TypeError("network connection lost")), true);
+});
+
+test("isNetworkLikeError: returns false for unrelated errors", () => {
+  assert.equal(isNetworkLikeError(new Error("Invalid filter")), false);
+  assert.equal(isNetworkLikeError(new Error("Out of memory")), false);
+  assert.equal(isNetworkLikeError(new Error("syntax error")), false);
+});
+
+test("isNetworkLikeError: handles non-Error values", () => {
+  assert.equal(isNetworkLikeError("Failed to fetch"), true);
+  assert.equal(isNetworkLikeError("some other reason"), false);
+  assert.equal(isNetworkLikeError(null), false);
+  assert.equal(isNetworkLikeError(undefined), false);
 });
