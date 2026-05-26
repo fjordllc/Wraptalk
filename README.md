@@ -150,3 +150,7 @@ chmod +x ./podcast_auto.sh
 - ブラウザ版: 進捗メッセージの細分化、アクセシビリティ整備、直近設定の `localStorage` 保存（NOTES P2/P3 参照）
 - シェル版: `intro.mp3` / `outro.mp3` を固定配置にしてスタッフは録画ファイルだけ選べばよい形に
 - シェル版: 入力フォルダ監視で、録画ファイルを置いたら自動処理
+
+## ライセンス
+
+[MIT License](./LICENSE) © FjordBootCamp

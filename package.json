@@ -1,4 +1,8 @@
 {
+  "name": "wraptalk",
+  "version": "0.1.0",
+  "description": "ポッドキャスト録音をブラウザだけで仕上げるツール",
+  "license": "MIT",
   "scripts": {
     "test": "node --test web/*.test.js",
     "build": "rm -rf dist && mkdir -p dist && cp -R index.html web vendor opening.wav ending.wav _headers dist/"
