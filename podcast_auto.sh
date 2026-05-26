@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+#
+# Legacy shell version of Wraptalk. The audio processing here does NOT match the
+# browser version (web/filter.js). The browser version uses time-based envelope
+# ducking, dynamic de-esser (adynamicequalizer), pseudo-stereo widening, and a
+# final alimiter. This script still uses an older chain (sidechain compressor +
+# static acompressor) and is kept only as a long-form fallback when a 60min+
+# mp4 is too heavy for ffmpeg.wasm. Output character will differ from the
+# browser version's mp3.
 
 set -euo pipefail
 

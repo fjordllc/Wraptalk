@@ -210,6 +210,24 @@ h1 {
   border: 0;
 }
 
+.u--handle-tag-yellow,
+.u--handle-tag-red,
+.u--handle-tag-green {
+  font-weight: 700;
+}
+
+.u--handle-tag-yellow {
+  color: rgb(251, 191, 36);
+}
+
+.u--handle-tag-red {
+  color: rgb(244, 63, 94);
+}
+
+.u--handle-tag-green {
+  color: rgb(74, 222, 128);
+}
+
 .c--media-section small {
   color: var(--muted);
   line-height: 1.5;
@@ -443,7 +461,7 @@ h1 {
 .c--zoom-preset.is--active {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--white);
+  color: var(--text-light);
 }
 
 .l--jump-buttons {
