@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test web/*.test.js",
-    "build": "rm -rf dist && mkdir -p dist && cp -R index.html web vendor opening.wav ending.wav _headers dist/"
+    "build": "rm -rf dist && mkdir -p dist && cp -R index.html web vendor opening.wav ending.wav _headers dist/ && rm -f dist/web/*.test.js"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",

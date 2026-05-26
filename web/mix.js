@@ -37,7 +37,7 @@ class FfmpegRuntime {
   #instance = new FFmpeg();
   #isLoaded = false;
   #loadPromise = null;
-  #queue = Promise.resolve();
+  #mutex = Promise.resolve();
   #logHandler = null;
   #progressHandler = null;
 
@@ -87,35 +87,34 @@ class FfmpegRuntime {
     return this.#loadPromise;
   }
 
-  // Serialize all fs / exec calls so concurrent callers (waveform decode,
-  // preview render, export) don't trample the single underlying ffmpeg
-  // worker. Errors don't break the chain — the next caller still runs.
-  #enqueue(work) {
-    const next = this.#queue.then(work, work);
-    this.#queue = next.catch(() => {});
+  // Acquire exclusive access for a multi-step ffmpeg flow (write → exec →
+  // read → cleanup). Other callers wait until fn resolves, so we never
+  // interleave two flows that share filenames on the worker's fs.
+  withLock(fn) {
+    const previous = this.#mutex;
+    const next = previous.then(fn, fn);
+    this.#mutex = next.catch(() => {});
     return next;
   }
 
   writeFile(name, data) {
-    return this.#enqueue(() => this.#instance.writeFile(name, data));
+    return this.#instance.writeFile(name, data);
   }
 
   exec(args) {
-    return this.#enqueue(() => this.#instance.exec(args));
+    return this.#instance.exec(args);
   }
 
   readFile(name) {
-    return this.#enqueue(() => this.#instance.readFile(name));
+    return this.#instance.readFile(name);
   }
 
-  deleteFile(name) {
-    return this.#enqueue(async () => {
-      try {
-        await this.#instance.deleteFile(name);
-      } catch {
-        // Best effort cleanup.
-      }
-    });
+  async deleteFile(name) {
+    try {
+      await this.#instance.deleteFile(name);
+    } catch {
+      // Best effort cleanup.
+    }
   }
 
   async cleanupFiles(names) {
@@ -242,15 +241,16 @@ export async function renderMixPreview(spec, kind) {
   const bgmName = kind === "opening" ? names.introName : names.outroName;
   const bgmSource = kind === "opening" ? spec.intro.source : spec.outro.source;
 
-  try {
-    onStatus?.("ファイルを書き込み中...");
-    await ffmpegRuntime.writeFile(names.inputName, await fetchFile(spec.input));
-    await ffmpegRuntime.writeFile(bgmName, await fetchFile(bgmSource));
+  onStatus?.("長さを解析中...");
+  const speechDuration = await getMediaDurationSeconds(spec.input);
+  const timings = computeMixTimings({ ...spec, speechDuration });
+  const trimmedDur = timings.safeTalkTrimEnd - timings.safeTalkTrimStart;
 
-    onStatus?.("長さを解析中...");
-    const speechDuration = await getMediaDurationSeconds(spec.input);
-    const timings = computeMixTimings({ ...spec, speechDuration });
-    const trimmedDur = timings.safeTalkTrimEnd - timings.safeTalkTrimStart;
+  return ffmpegRuntime.withLock(async () => {
+    try {
+      onStatus?.("ファイルを書き込み中...");
+      await ffmpegRuntime.writeFile(names.inputName, await fetchFile(spec.input));
+      await ffmpegRuntime.writeFile(bgmName, await fetchFile(bgmSource));
 
     let filter;
     if (kind === "opening") {
@@ -337,11 +337,12 @@ export async function renderMixPreview(spec, kind) {
       outputName,
     ]);
 
-    const blob = await readMixOutput(outputName);
-    return { blob, durationSec: segmentDurationSec };
-  } finally {
-    await ffmpegRuntime.cleanupFiles([names.inputName, bgmName, outputName]);
-  }
+      const blob = await readMixOutput(outputName);
+      return { blob, durationSec: segmentDurationSec };
+    } finally {
+      await ffmpegRuntime.cleanupFiles([names.inputName, bgmName, outputName]);
+    }
+  });
 }
 
 /**
@@ -357,46 +358,48 @@ export async function runMix(spec) {
   const names = deriveMixFileNames(spec);
   const { onStatus } = spec;
 
-  try {
-    onStatus?.("ファイルを書き込み中...");
-    await writeMixInputs(spec, names);
+  onStatus?.("長さを解析中...");
+  const speechDuration = await getMediaDurationSeconds(spec.input);
+  const timings = computeMixTimings({ ...spec, speechDuration });
 
-    onStatus?.("長さを解析中...");
-    const speechDuration = await getMediaDurationSeconds(spec.input);
-    const timings = computeMixTimings({ ...spec, speechDuration });
+  const filter = buildFilter({
+    speechDelayMs: timings.speechDelayMs,
+    outroStartMs: timings.outroStartMs,
+    introPad: spec.introPad,
+    safeOutroOverlap: timings.safeOutroOverlap,
+    voiceLufs: spec.voiceLufs,
+    introMusicVolume: spec.introMusicVolume,
+    outroMusicVolume: spec.outroMusicVolume,
+    introDuckLevel: spec.introDuckLevel,
+    outroDuckLevel: spec.outroDuckLevel,
+    introFadeStart: spec.introFadeStart,
+    introFadeEnd: spec.introFadeEnd,
+    outroFadeStart: spec.outroFadeStart,
+    outroFadeEnd: spec.outroFadeEnd,
+    talkTrimStart: timings.safeTalkTrimStart,
+    talkTrimEnd: timings.safeTalkTrimEnd,
+  });
 
-    const filter = buildFilter({
-      speechDelayMs: timings.speechDelayMs,
-      outroStartMs: timings.outroStartMs,
-      introPad: spec.introPad,
-      safeOutroOverlap: timings.safeOutroOverlap,
-      voiceLufs: spec.voiceLufs,
-      introMusicVolume: spec.introMusicVolume,
-      outroMusicVolume: spec.outroMusicVolume,
-      introDuckLevel: spec.introDuckLevel,
-      outroDuckLevel: spec.outroDuckLevel,
-      introFadeStart: spec.introFadeStart,
-      introFadeEnd: spec.introFadeEnd,
-      outroFadeStart: spec.outroFadeStart,
-      outroFadeEnd: spec.outroFadeEnd,
-      talkTrimStart: timings.safeTalkTrimStart,
-      talkTrimEnd: timings.safeTalkTrimEnd,
-    });
+  return ffmpegRuntime.withLock(async () => {
+    try {
+      onStatus?.("ファイルを書き込み中...");
+      await writeMixInputs(spec, names);
 
-    onStatus?.("音声処理中...");
-    await executeMixFilter({
-      names,
-      filter,
-      totalDurationSec: timings.totalDurationSec,
-      mp3Bitrate: spec.mp3Bitrate,
-    });
+      onStatus?.("音声処理中...");
+      await executeMixFilter({
+        names,
+        filter,
+        totalDurationSec: timings.totalDurationSec,
+        mp3Bitrate: spec.mp3Bitrate,
+      });
 
-    onStatus?.("書き出し中...");
-    const blob = await readMixOutput(names.outputName);
-    return { blob, filename: names.outputName };
-  } finally {
-    await ffmpegRuntime.cleanupFiles([names.inputName, names.introName, names.outroName, names.outputName]);
-  }
+      onStatus?.("書き出し中...");
+      const blob = await readMixOutput(names.outputName);
+      return { blob, filename: names.outputName };
+    } finally {
+      await ffmpegRuntime.cleanupFiles([names.inputName, names.introName, names.outroName, names.outputName]);
+    }
+  });
 }
 
 export async function getMediaDurationSeconds(source) {

@@ -294,7 +294,9 @@ async function processAudio() {
   link.href = url;
   link.download = filename;
   link.click();
-  URL.revokeObjectURL(url);
+  // Some browsers may not have started the download by the time click() returns;
+  // a short delay before revoking avoids racing the navigation away.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 
   setProgress(1);
   setStatus("完了");
@@ -746,10 +748,40 @@ function bindDropZone(input) {
     if (!file) {
       return;
     }
+    if (!isAcceptableFile(input, file)) {
+      const accept = input.accept || "";
+      setStatus(`このファイル形式には対応していません（許可: ${accept || "—"}）`);
+      appendLog(`ドロップされたファイル ${file.name} (${file.type || "?"}) は ${input.id} の accept "${accept}" に一致しません。`);
+      return;
+    }
     const transfer = new DataTransfer();
     transfer.items.add(file);
     input.files = transfer.files;
     input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+function isAcceptableFile(input, file) {
+  const accept = input.accept;
+  if (!accept) {
+    return true;
+  }
+  const tokens = accept.split(",").map((s) => s.trim()).filter(Boolean);
+  if (tokens.length === 0) {
+    return true;
+  }
+  const type = (file.type || "").toLowerCase();
+  const name = (file.name || "").toLowerCase();
+  return tokens.some((token) => {
+    const t = token.toLowerCase();
+    if (t.startsWith(".")) {
+      return name.endsWith(t);
+    }
+    if (t.endsWith("/*")) {
+      const prefix = t.slice(0, -1); // keep slash
+      return type.startsWith(prefix);
+    }
+    return type === t;
   });
 }
 
