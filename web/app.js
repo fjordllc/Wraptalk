@@ -87,6 +87,7 @@ import {
   loadButton,
   logBox,
   logToggle,
+  resetSettingsButton,
   meterBar,
   mixPreviewBlock,
   mixPreviewEnding,
@@ -713,6 +714,37 @@ for (const input of persistedInputs) {
 for (const radio of document.querySelectorAll('input[name="mp3Bitrate"]')) {
   radio.addEventListener("change", persistSettings);
 }
+
+function resetSettingsToDefaults() {
+  for (const input of persistedInputs) {
+    if (!input) {
+      continue;
+    }
+    input.value = input.defaultValue;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  for (const radio of document.querySelectorAll('input[name="mp3Bitrate"]')) {
+    if (radio instanceof HTMLInputElement) {
+      radio.checked = radio.defaultChecked;
+    }
+  }
+  try {
+    localStorage.removeItem(SETTINGS_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+  for (const controller of previewControllers) {
+    controller.updateUI();
+  }
+}
+
+resetSettingsButton?.addEventListener("click", () => {
+  if (!window.confirm("すべての設定を初期値に戻します。よろしいですか?")) {
+    return;
+  }
+  resetSettingsToDefaults();
+});
 
 window.addEventListener("resize", () => {
   for (const controller of previewControllers) {

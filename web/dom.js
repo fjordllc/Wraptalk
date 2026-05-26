@@ -67,6 +67,7 @@ export const statusBlock = $("statusBlock");
 export const statusText = $("statusText");
 export const logBox = $("logBox");
 export const logToggle = $("logToggle");
+export const resetSettingsButton = $("resetSettingsButton");
 export const meterBar = $("meterBar");
 
 export const inputMeta = $("inputMeta");
