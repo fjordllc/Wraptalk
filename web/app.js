@@ -397,6 +397,11 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+function isNetworkLikeError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /fetch|network|failed to load|err_internet|err_network/i.test(message);
+}
+
 loadButton.addEventListener("click", async () => {
   openActionModal();
   if (ffmpegRuntime.isLoaded()) {
@@ -406,7 +411,12 @@ loadButton.addEventListener("click", async () => {
   try {
     await handleLoadFFmpeg();
   } catch (error) {
-    setStatus("初期化失敗");
+    if (isNetworkLikeError(error)) {
+      setStatus("ffmpeg の読み込みに失敗しました（ネットワークまたは CDN 障害の可能性）");
+      appendLog("通信エラー: ffmpeg-core を jsDelivr CDN から取得できませんでした。ネットワーク接続を確認するか、しばらく時間を置いて再度お試しください。");
+    } else {
+      setStatus("初期化失敗");
+    }
     appendLog(String(error));
   } finally {
     loadButton.disabled = !inputFile.files?.length;
@@ -602,6 +612,86 @@ for (const [input, controller] of inputBindings) {
   input?.addEventListener("input", () => {
     controller.updateUI();
   });
+}
+
+const SETTINGS_STORAGE_KEY = "wraptalk:settings:v1";
+
+// Inputs persisted across sessions (excludes file-derived trim and the file inputs themselves).
+const persistedInputs = [
+  introPadInput,
+  outroOverlapInput,
+  voiceLufsInput,
+  introMusicVolumeInput,
+  outroMusicVolumeInput,
+  introDuckLevelInput,
+  outroDuckLevelInput,
+  introFadeStartInput,
+  introFadeEndInput,
+  outroFadeStartInput,
+  outroFadeEndInput,
+];
+
+function persistSettings() {
+  const data = {};
+  for (const input of persistedInputs) {
+    if (input?.id) {
+      data[input.id] = input.value;
+    }
+  }
+  const checked = document.querySelector('input[name="mp3Bitrate"]:checked');
+  if (checked instanceof HTMLInputElement) {
+    data.mp3Bitrate = checked.value;
+  }
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // localStorage may be unavailable (private mode, quota); fail silently.
+  }
+}
+
+function restoreSettings() {
+  let raw;
+  try {
+    raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+  } catch {
+    return;
+  }
+  if (!raw) {
+    return;
+  }
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!data || typeof data !== "object") {
+    return;
+  }
+  for (const input of persistedInputs) {
+    if (input?.id && typeof data[input.id] === "string") {
+      input.value = data[input.id];
+    }
+  }
+  if (typeof data.mp3Bitrate === "string") {
+    const radio = document.querySelector(`input[name="mp3Bitrate"][value="${data.mp3Bitrate}"]`);
+    if (radio instanceof HTMLInputElement) {
+      radio.checked = true;
+    }
+  }
+}
+
+restoreSettings();
+for (const controller of previewControllers) {
+  controller.updateUI();
+}
+
+for (const input of persistedInputs) {
+  input?.addEventListener("change", persistSettings);
+  input?.addEventListener("input", persistSettings);
+}
+for (const radio of document.querySelectorAll('input[name="mp3Bitrate"]')) {
+  radio.addEventListener("change", persistSettings);
 }
 
 window.addEventListener("resize", () => {
