@@ -11,8 +11,9 @@
    08 / Setting Card             — setting-card 群
    09 / Form Inputs              — number / select / focus
    10 / Actions & Buttons        — process button, secondary
-   11 / Status & Log             — meter, log-box, note
-   12 / Responsive               — @media (max-width: 720px)
+   11 / Modal                    — c--modal, dialog backdrop, header, body
+   12 / Status & Log             — meter, log-box, note
+   13 / Responsive               — @media (max-width: 720px)
    ============================================================ */
 
 
@@ -1085,7 +1086,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================================
-   13 / Modal
+   11 / Modal
    ============================================================ */
 
 .c--modal {
@@ -1212,7 +1213,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================================
-   11 / Status & Log
+   12 / Status & Log
    ============================================================ */
 
 .c--status {
@@ -1378,7 +1379,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================================
-   12 / Responsive
+   13 / Responsive
    ============================================================ */
 
 @media (max-width: 720px) {
