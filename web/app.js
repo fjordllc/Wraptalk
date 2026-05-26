@@ -503,29 +503,36 @@ inputFile?.addEventListener("change", () => {
 });
 
 const fileCardConfigs = [
-  [inputFile, inputMeta, {
+  {
+    input: inputFile,
+    meta: inputMeta,
     emptyText: "まだファイルが選択されていません",
     selectLabel: "音源 or 映像を選択",
     changeLabel: "音源 or 映像を変更",
     button: inputSelectButton,
-  }],
-  [introFile, introMeta, {
+  },
+  {
+    input: introFile,
+    meta: introMeta,
     emptyText: "音源を選択",
     defaultText: `未選択時は ${DEFAULT_INTRO_NAME} を使います`,
     selectLabel: "イントロ音源を選択",
     changeLabel: "音源を変更",
     button: introSelectButton,
-  }],
-  [outroFile, outroMeta, {
+  },
+  {
+    input: outroFile,
+    meta: outroMeta,
     emptyText: "音源を選択",
     defaultText: `未選択時は ${DEFAULT_OUTRO_NAME} を使います`,
     selectLabel: "エンディング音源を選択",
     changeLabel: "音源を変更",
     button: outroSelectButton,
-  }],
+  },
 ];
 
-for (const [input, meta, config] of fileCardConfigs) {
+for (const config of fileCardConfigs) {
+  const { input, meta } = config;
   updateFileCardState(input, meta, config);
   input?.addEventListener("change", () => {
     updateFileCardState(input, meta, config);
