@@ -32,23 +32,18 @@ function logFromError(error) {
   logger(error instanceof Error ? error.message : String(error));
 }
 
+const ABORT_ERROR_MESSAGE = "aborted";
+function isAbortError(error) {
+  return error instanceof Error && error.message === ABORT_ERROR_MESSAGE;
+}
+
 class PreviewSession {
   #audio = null;
   #button = null;
   #controller = null;
-  #token = 0;
 
   get activeController() {
     return this.#controller;
-  }
-
-  nextToken() {
-    this.#token += 1;
-    return this.#token;
-  }
-
-  currentToken() {
-    return this.#token;
   }
 
   isPlayingOn(button) {
@@ -164,6 +159,7 @@ export class PreviewController {
     this.duration = 0;
     this.zoomLevel = MIN_WAVEFORM_ZOOM;
     this.waveformToken = 0;
+    this.prepareToken = 0;
     this.focusedHandle = null;
   }
 
@@ -260,7 +256,7 @@ export class PreviewController {
   }
 
   async prepare() {
-    const token = previewSession.nextToken();
+    const token = ++this.prepareToken;
 
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
@@ -301,11 +297,12 @@ export class PreviewController {
       audio.addEventListener("error", onError);
     });
 
-    // Bail out when a later prepare() / handleSourceChange has superseded us.
-    // currentToken catches a second prepare(); this.audio !== audio catches
-    // handleSourceChange clearing the audio while we were awaiting metadata.
-    if (token !== previewSession.currentToken() || this.audio !== audio) {
-      throw new Error("aborted");
+    // Bail out when a later prepare() on THIS controller has superseded us,
+    // or handleSourceChange has cleared the audio while we awaited metadata.
+    // Using a per-controller token keeps unrelated controllers' prepares
+    // intact when this controller's source changes.
+    if (token !== this.prepareToken || this.audio !== audio) {
+      throw new Error(ABORT_ERROR_MESSAGE);
     }
 
     this.updateUI();
@@ -319,7 +316,7 @@ export class PreviewController {
       await this.prepare();
       return this.audio != null;
     } catch (error) {
-      if (!(error instanceof Error && error.message === "aborted")) {
+      if (!isAbortError(error)) {
         logFromError(error);
       }
       return false;
@@ -338,21 +335,12 @@ export class PreviewController {
 
     previewSession.stop();
 
-    if (!this.audio) {
-      try {
-        await this.prepare();
-      } catch (error) {
-        if (!(error instanceof Error && error.message === "aborted")) {
-          logFromError(error);
-        }
-        return;
-      }
+    const ready = await this.ensureReady();
+    if (!ready) {
+      return;
     }
 
     const audio = this.audio;
-    if (!audio) {
-      return; // file swapped during prepare(); nothing to play
-    }
     previewSession.activate(this, audio);
     this.updateUI();
 
@@ -453,13 +441,9 @@ export class PreviewController {
 
     this.seek?.addEventListener("input", async (event) => {
       event.stopPropagation();
-      if (!this.audio) {
-        try {
-          await this.prepare();
-        } catch (error) {
-          logErr(error instanceof Error ? error.message : String(error));
-          return;
-        }
+      const ready = await this.ensureReady();
+      if (!ready) {
+        return;
       }
       this.audio.currentTime = Number.parseFloat(this.seek.value) || 0;
       this.updateUI();
@@ -468,13 +452,9 @@ export class PreviewController {
     this.setButton?.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
-      if (!this.audio) {
-        try {
-          await this.prepare();
-        } catch (error) {
-          logErr(error instanceof Error ? error.message : String(error));
-          return;
-        }
+      const ready = await this.ensureReady();
+      if (!ready) {
+        return;
       }
       this.targetInput.value = (this.audio.currentTime || 0).toFixed(1);
       this.updateUI();
@@ -639,9 +619,10 @@ export class PreviewController {
   }
 
   handleSourceChange() {
-    // Bump the token so any in-flight prepare() detects the change and aborts
-    // before reaching back into our (now nulled) audio reference.
-    previewSession.nextToken();
+    // Bump this controller's prepare token so any in-flight prepare() detects
+    // the change and aborts before reaching back into our (now nulled) audio
+    // reference. Per-controller token so peers' prepares aren't disturbed.
+    this.prepareToken += 1;
     if (previewSession.activeController === this) {
       previewSession.stop();
     }
