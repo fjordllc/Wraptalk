@@ -19,13 +19,13 @@
 
 | File | Lines | 役割 |
 |------|-------|------|
-| `app.js` | 916 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群、modal focus trap、localStorage 永続化、設定リセット、D&D (accept 検証 + 拡張子 fallback)、ステッパー注入、入力 clampRange |
+| `app.js` | 916 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群、modal focus trap、localStorage 永続化、設定リセット、D&D (accept 検証 + 拡張子 fallback)、ステッパー注入、入力 assertInRange |
 | `preview.js` | 686 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。jumps[] config で任意位置へジャンプ、ハンドル focus highlight 連動、`prepareToken` で per-controller の race 対策 |
 | `waveform.js` | 513 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替、時刻軸 (cache 付き)、focus halo。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
 | `mix.js` | 457 | `FfmpegRuntime` クラス (load promise + `withLock(fn)` で session を渡す排他制御)、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別)、`buildPreviewFilter` |
 | `filter.js` | 205 | `buildFilter` / `buildOpeningPreviewFilter` / `buildEndingPreviewFilter` + envelope ヘルパー。Node からテスト可能 |
 | `dom.js` | 132 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
-| `utils.js` | 98 | 純粋関数 + JSDoc 型注釈付き (parse 系 / clamp / clampRange / formatTime / extFromName / isNetworkLikeError) |
+| `utils.js` | 98 | 純粋関数 + JSDoc 型注釈付き (parse 系 / clamp / assertInRange / formatTime / extFromName / isNetworkLikeError) |
 | `waveform-loader.js` | 86 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード、`withLock` 内で atomic 化) |
 
 すべての JS ファイル冒頭に `// @ts-check` を付けて、JSDoc 型注釈で TS-aware エディタ上で型補完 + エラー検知が効くようになっている。
@@ -52,7 +52,7 @@ utils.js ──┬──────────┤
 `web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (63 ケース)。
 
 - `web/filter.test.js` — buildFilter / buildOpeningPreviewFilter / buildEndingPreviewFilter のロジック + 構造アサーション
-- `web/utils.test.js` — parse / clamp / clampRange / formatTime / extFromName / isNetworkLikeError
+- `web/utils.test.js` — parse / clamp / assertInRange / formatTime / extFromName / isNetworkLikeError
 - `web/waveform.test.js` — handle positions / hit-tests / trim handles (canvas mock)
 
 ## 音声処理チェーン
@@ -283,7 +283,7 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 - 2026-05: 波形に時刻軸 (`.c--waveform-time-axis`)。canvas のスクロール領域にスクロール連動、interval は zoom に応じて自動選択
 - 2026-05: 入力フォーカス時のハンドル halo 強調。focusedHandle を controller に持たせ、`drawFocusHalo` で発光
 - 2026-05: 波形の再生位置縦線を黒 → 白に変更 (ダークモード視認性)
-- 2026-05: クランプ範囲入力検証 (`clampRange`) + ネットワークエラー判定 (`isNetworkLikeError`) を utils に移動、テスト 7 件追加
+- 2026-05: クランプ範囲入力検証 (`assertInRange`) + ネットワークエラー判定 (`isNetworkLikeError`) を utils に移動、テスト 7 件追加
 - 2026-05: preview の renderWaveform に token 機能を追加 (file 切替時の race condition 対策)
 - 2026-05: waveform-loader の ffmpeg cleanup を try/finally に
 - 2026-05: 数値入力のネイティブスピンを非表示、JS で attached なステッパー (`±`) を全数値 input にラッピング

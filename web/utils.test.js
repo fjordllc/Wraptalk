@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import {
   clamp01,
-  clampRange,
+  assertInRange,
   extFromName,
   formatTime,
   isNetworkLikeError,
@@ -111,30 +111,30 @@ test("extFromName: multi-dot keeps last segment", () => {
   assert.equal(extFromName("foo.bar.baz.mp3", "x"), "mp3");
 });
 
-test("clampRange: returns value when inside range", () => {
-  assert.equal(clampRange(0.5, 0, 1, "音量"), 0.5);
-  assert.equal(clampRange(0, 0, 1, "音量"), 0);
-  assert.equal(clampRange(1, 0, 1, "音量"), 1);
+test("assertInRange: returns value when inside range", () => {
+  assert.equal(assertInRange(0.5, 0, 1, "音量"), 0.5);
+  assert.equal(assertInRange(0, 0, 1, "音量"), 0);
+  assert.equal(assertInRange(1, 0, 1, "音量"), 1);
 });
 
-test("clampRange: throws labeled error when below min", () => {
+test("assertInRange: throws labeled error when below min", () => {
   assert.throws(
-    () => clampRange(-0.1, 0, 1, "音量"),
+    () => assertInRange(-0.1, 0, 1, "音量"),
     /音量は 0〜1 の範囲で入力してください \(現在: -0\.1\)/,
   );
 });
 
-test("clampRange: throws labeled error when above max", () => {
+test("assertInRange: throws labeled error when above max", () => {
   assert.throws(
-    () => clampRange(101, 0, 100, "ducking レベル"),
+    () => assertInRange(101, 0, 100, "ducking レベル"),
     /ducking レベルは 0〜100 の範囲で入力してください \(現在: 101\)/,
   );
 });
 
-test("clampRange: negative ranges work", () => {
-  assert.equal(clampRange(-16, -40, -8, "LUFS"), -16);
-  assert.throws(() => clampRange(-5, -40, -8, "LUFS"));
-  assert.throws(() => clampRange(-41, -40, -8, "LUFS"));
+test("assertInRange: negative ranges work", () => {
+  assert.equal(assertInRange(-16, -40, -8, "LUFS"), -16);
+  assert.throws(() => assertInRange(-5, -40, -8, "LUFS"));
+  assert.throws(() => assertInRange(-41, -40, -8, "LUFS"));
 });
 
 test("isNetworkLikeError: matches typical fetch failures", () => {

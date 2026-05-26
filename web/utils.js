@@ -79,7 +79,7 @@ export function extFromName(name, fallback) {
  * @param {string} label
  * @returns {number}
  */
-export function clampRange(value, min, max, label) {
+export function assertInRange(value, min, max, label) {
   if (value < min || value > max) {
     throw new Error(`${label}は ${min}〜${max} の範囲で入力してください (現在: ${value})`);
   }
