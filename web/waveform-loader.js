@@ -1,6 +1,6 @@
 // @ts-check
 
-import { fetchFile } from "../node_modules/@ffmpeg/util/dist/esm/index.js";
+import { fetchFile } from "../vendor/util/dist/esm/index.js";
 import { extFromName } from "./utils.js";
 import { ffmpegRuntime } from "./mix.js";
 
