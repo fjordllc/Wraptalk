@@ -1,0 +1,118 @@
+#!/bin/bash
+
+set -euo pipefail
+
+APP_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WORK_DIR="$(dirname "$APP_ROOT")"
+SCRIPT_PATH="$WORK_DIR/podcast_auto.sh"
+DEFAULT_INTRO="$WORK_DIR/intro.mp3"
+DEFAULT_OUTRO="$WORK_DIR/outro.mp3"
+
+osascript_run() {
+  /usr/bin/osascript "$@"
+}
+
+choose_file() {
+  local prompt="$1"
+  local type_expr="${2:-}"
+  if [[ -n "$type_expr" ]]; then
+    osascript_run <<EOF
+POSIX path of (choose file with prompt "$prompt" of type $type_expr)
+EOF
+  else
+    osascript_run <<EOF
+POSIX path of (choose file with prompt "$prompt")
+EOF
+  fi
+}
+
+choose_output() {
+  local default_name="$1"
+  osascript_run <<EOF
+POSIX path of (choose file name with prompt "出力先を選んでください" default name "$default_name")
+EOF
+}
+
+ask_text() {
+  local prompt="$1"
+  local default_value="$2"
+  osascript_run <<EOF
+text returned of (display dialog "$prompt" default answer "$default_value" buttons {"キャンセル", "次へ"} default button "次へ")
+EOF
+}
+
+ask_use_default_audio() {
+  local file_name="$1"
+  osascript_run <<EOF
+button returned of (display dialog "$file_name を使いますか？" buttons {"別のファイルを選ぶ", "使う"} default button "使う")
+EOF
+}
+
+show_dialog() {
+  local message="$1"
+  osascript_run <<EOF
+display dialog "$message" buttons {"OK"} default button "OK"
+EOF
+}
+
+show_error() {
+  local message="$1"
+  osascript_run <<EOF
+display dialog "$message" buttons {"OK"} default button "OK" with icon stop
+EOF
+}
+
+if [[ ! -x "$SCRIPT_PATH" ]]; then
+  show_error "podcast_auto.sh がアプリと同じフォルダに見つかりません。"
+  exit 1
+fi
+
+if ! INPUT_FILE="$(choose_file "Google Meet の録画 mp4 を選んでください" '{"public.movie"}')"; then
+  exit 0
+fi
+
+if [[ -f "$DEFAULT_INTRO" ]]; then
+  if [[ "$(ask_use_default_audio "intro.mp3")" == "使う" ]]; then
+    INTRO_FILE="$DEFAULT_INTRO"
+  else
+    INTRO_FILE="$(choose_file "イントロBGMを選んでください")" || exit 0
+  fi
+else
+  INTRO_FILE="$(choose_file "イントロBGMを選んでください")" || exit 0
+fi
+
+if [[ -f "$DEFAULT_OUTRO" ]]; then
+  if [[ "$(ask_use_default_audio "outro.mp3")" == "使う" ]]; then
+    OUTRO_FILE="$DEFAULT_OUTRO"
+  else
+    OUTRO_FILE="$(choose_file "エンディングBGMを選んでください")" || exit 0
+  fi
+else
+  OUTRO_FILE="$(choose_file "エンディングBGMを選んでください")" || exit 0
+fi
+
+INPUT_BASENAME="$(basename "$INPUT_FILE")"
+OUTPUT_NAME="${INPUT_BASENAME%.*}_final.mp3"
+OUTPUT_FILE="$(choose_output "$OUTPUT_NAME")" || exit 0
+if [[ "$OUTPUT_FILE" != *.mp3 ]]; then
+  OUTPUT_FILE="${OUTPUT_FILE}.mp3"
+fi
+
+INTRO_PAD="$(ask_text "冒頭でBGMだけを流す秒数" "2.0")" || exit 0
+OUTRO_OVERLAP="$(ask_text "最後にトークへBGMを重ねる秒数" "8.0")" || exit 0
+
+show_dialog "処理を開始します。長い録音では数分かかることがあります。"
+
+if export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+  && "$SCRIPT_PATH" \
+    --input "$INPUT_FILE" \
+    --intro "$INTRO_FILE" \
+    --outro "$OUTRO_FILE" \
+    --output "$OUTPUT_FILE" \
+    --intro-pad "$INTRO_PAD" \
+    --outro-overlap "$OUTRO_OVERLAP"; then
+  show_dialog "書き出しが完了しました。\\n$OUTPUT_FILE"
+else
+  show_error "処理に失敗しました。入力ファイルや ffmpeg の設定を確認してください。"
+  exit 1
+fi

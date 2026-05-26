@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wraptalk</title>
+    <link rel="icon" href="/web/favicon.svg" type="image/svg+xml" />
+    <link rel="shortcut icon" href="/web/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <main class="l--shell">
+      <section class="l--hero">
+        <h1>Wraptalk</h1>
+        <p class="c--lede">
+          ポッドキャスト録音をブラウザだけで仕上げるツール。
+          トーク音源にイントロ・アウトロの BGM を重ね、トーク中は BGM の音量を自動で下げます。
+          音量や音質の補正も内蔵なので、書き出した mp3 をそのまま配信できます。
+        </p>
+        <details class="c--lede-details">
+          <summary>動作環境について</summary>
+          <p class="c--lede-note">
+            変換はブラウザ内で実行されます。60分超の mp4 はメモリ消費が大きく、
+            非力なPCやSafariでは厳しい場合があります。Chrome系デスクトップ推奨です。
+          </p>
+        </details>
+      </section>
+
+      <section class="l--panel">
+        <div class="l--grid">
+          <section class="c--media-section" aria-labelledby="input-heading">
+            <div class="l--section-header">
+              <h2 id="input-heading" class="c--field-heading">トーク</h2>
+              <div class="l--heading-action">
+                <button id="inputSelectButton" class="c--file-action c--file-action-primary" type="button">音源 or 映像を選択</button>
+              </div>
+            </div>
+            <input id="inputFile" class="u--sr-only" type="file" accept="video/*,audio/*" />
+            <p id="inputMeta" class="c--media-meta"></p>
+            <article class="c--media-panel" data-file-card="inputFile">
+              <div class="c--waveform-shell">
+                <div class="c--waveform-scroll js--waveform-scroll">
+                  <canvas id="inputWaveform" class="c--waveform-canvas" width="640" height="88"></canvas>
+                </div>
+                <p id="inputWaveformStatus" class="c--waveform-status" aria-live="polite">音源を選択すると波形を表示します</p>
+              </div>
+              <div class="l--media-toolbar">
+                <div class="l--preview-controls">
+                  <div class="l--preview-button-group">
+                    <button id="inputPreviewButton" class="c--preview-button" type="button" disabled>▶ 試聴</button>
+                    <p id="inputPreviewTime" class="c--preview-time">0:00 / 0:00</p>
+                    <div class="l--jump-buttons">
+                      <button id="inputJumpStartButton" class="c--jump-button" type="button" disabled title="先頭に移動" aria-label="先頭に移動">⏮</button>
+                      <button id="inputJumpTrimStartButton" class="c--jump-button c--jump-trim-start" type="button" disabled title="トーク開始位置に移動" aria-label="トーク開始位置に移動"></button>
+                      <button id="inputJumpTrimEndButton" class="c--jump-button c--jump-trim-end" type="button" disabled title="トーク終了位置に移動" aria-label="トーク終了位置に移動"></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="l--volume-inline">
+                  <div class="l--label-with-info">
+                    <label for="voiceLufs">目標LUFS</label>
+                    <button id="voiceLufsInfoButton" class="c--info-button" type="button" aria-label="目標LUFS について">ⓘ</button>
+                  </div>
+                  <input id="voiceLufs" type="number" step="0.5" value="-16" />
+                </div>
+                <div class="l--zoom-toolbar">
+                  <div class="c--zoom-control" aria-label="トーク音源の波形ズーム">
+                    <div id="inputWaveformZoomPresets" class="l--zoom-presets">
+                      <button class="c--zoom-preset" type="button" data-zoom="1">全体</button>
+                      <button class="c--zoom-preset" type="button" data-zoom="8">中</button>
+                      <button class="c--zoom-preset" type="button" data-zoom="48">詳細</button>
+                    </div>
+                    <div class="l--zoom-buttons">
+                      <button id="inputWaveformZoomOut" class="c--zoom-button" type="button" aria-label="トーク音源の波形を縮小">-</button>
+                      <span id="inputWaveformZoomValue" class="c--zoom-value" aria-live="polite">1.0x</span>
+                      <button id="inputWaveformZoomIn" class="c--zoom-button" type="button" aria-label="トーク音源の波形を拡大">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="l--preview-scrubber">
+                <input id="inputPreviewSeek" class="c--preview-seek" type="range" min="0" max="0" step="0.1" value="0" />
+              </div>
+              <section class="c--setting-card" aria-labelledby="talk-trim-label">
+                <header class="c--setting-card-header">
+                  <h3 id="talk-trim-label" class="c--setting-card-title">使用範囲</h3>
+                  <button id="talkTrimInfoButton" class="c--info-button" type="button" aria-label="使用範囲 について">ⓘ</button>
+                </header>
+                <div class="c--setting-card-body">
+                  <div class="l--setting-columns">
+                    <div class="l--inline-setting">
+                      <p class="c--setting-field-label">開始位置</p>
+                      <input id="talkTrimStart" type="number" min="0" step="0.1" value="0" />
+                      <button id="talkTrimStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
+                    <div class="l--inline-setting">
+                      <p class="c--setting-field-label">終了位置</p>
+                      <input id="talkTrimEnd" type="number" min="0" step="0.1" value="0" />
+                      <button id="talkTrimEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
+                  </div>
+                  <p><small>`終了位置` を `0` のままにすると、末尾まで使用します</small></p>
+                </div>
+              </section>
+            </article>
+          </section>
+
+          <section class="c--media-section" aria-labelledby="intro-heading">
+            <div class="l--section-header">
+              <h2 id="intro-heading" class="c--field-heading">イントロ</h2>
+              <div class="l--heading-action">
+                <button id="introSelectButton" class="c--file-action c--file-action-primary" type="button">イントロ音源を選択</button>
+              </div>
+            </div>
+            <input id="introFile" class="u--sr-only" type="file" accept="audio/*" />
+            <p id="introMeta" class="c--media-meta"></p>
+            <article class="c--media-panel" data-file-card="introFile">
+              <div class="c--waveform-shell">
+                <div class="c--waveform-scroll js--waveform-scroll">
+                  <canvas id="introWaveform" class="c--waveform-canvas" width="640" height="88"></canvas>
+                </div>
+                <p id="introWaveformStatus" class="c--waveform-status" aria-live="polite">波形を準備中...</p>
+              </div>
+              <div class="l--media-toolbar">
+                <div class="l--preview-controls">
+                  <div class="l--preview-button-group">
+                    <button id="introPreviewButton" class="c--preview-button" type="button">▶ 試聴</button>
+                    <p id="introPreviewTime" class="c--preview-time">0:00 / 0:00</p>
+                    <div class="l--jump-buttons">
+                      <button id="introJumpStartButton" class="c--jump-button" type="button" disabled title="先頭に移動" aria-label="先頭に移動">⏮</button>
+                      <button id="introJumpTargetButton" class="c--jump-button c--jump-trim-start" type="button" disabled title="トーク開始位置に移動" aria-label="トーク開始位置に移動"></button>
+                      <button id="introJumpFadeStartButton" class="c--jump-button c--jump-fade-start" type="button" disabled title="フェードアウト開始位置に移動" aria-label="フェードアウト開始位置に移動"></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="l--volume-inline">
+                  <div class="l--label-with-info">
+                    <label for="introMusicVolume">基本音量</label>
+                    <button id="introDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
+                  </div>
+                  <input id="introMusicVolume" type="number" min="0" max="1" step="0.01" value="0.22" />
+                  <label for="introDuckLevel">トーク中音量</label>
+                  <div class="l--input-suffix">
+                    <input id="introDuckLevel" type="number" min="0" max="100" step="5" value="30" />
+                    <span class="c--input-suffix">%</span>
+                  </div>
+                </div>
+                <div class="l--zoom-toolbar">
+                  <div class="c--zoom-control" aria-label="イントロ音源の波形ズーム">
+                    <div id="introWaveformZoomPresets" class="l--zoom-presets">
+                      <button class="c--zoom-preset" type="button" data-zoom="1">全体</button>
+                      <button class="c--zoom-preset" type="button" data-zoom="8">中</button>
+                      <button class="c--zoom-preset" type="button" data-zoom="48">詳細</button>
+                    </div>
+                    <div class="l--zoom-buttons">
+                      <button id="introWaveformZoomOut" class="c--zoom-button" type="button" aria-label="イントロ音源の波形を縮小">-</button>
+                      <span id="introWaveformZoomValue" class="c--zoom-value" aria-live="polite">1.0x</span>
+                      <button id="introWaveformZoomIn" class="c--zoom-button" type="button" aria-label="イントロ音源の波形を拡大">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="l--preview-scrubber">
+                <input id="introPreviewSeek" class="c--preview-seek" type="range" min="0" max="0" step="0.1" value="0" />
+              </div>
+              <section class="c--setting-card" aria-labelledby="intro-pad-label">
+                <header class="c--setting-card-header">
+                  <h3 id="intro-pad-label" class="c--setting-card-title">トーク開始位置</h3>
+                  <button id="introPadInfoButton" class="c--info-button" type="button" aria-label="トーク開始位置 について">ⓘ</button>
+                </header>
+                <div class="c--setting-card-body">
+                  <div class="l--inline-setting">
+                    <input id="introPad" type="number" min="0" step="0.1" value="10.0" />
+                    <button id="introPadSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                  </div>
+                  <p><small>例: `10.0` なら、イントロ開始から10秒の地点でトークが始まります</small></p>
+                </div>
+              </section>
+              <section class="c--setting-card" aria-labelledby="intro-fade-label">
+                <header class="c--setting-card-header">
+                  <h3 id="intro-fade-label" class="c--setting-card-title">フェードアウト</h3>
+                </header>
+                <div class="c--setting-card-body">
+                  <div class="l--setting-columns">
+                    <div class="l--inline-setting">
+                      <p class="c--setting-field-label">開始位置</p>
+                      <input id="introFadeStart" type="number" min="0" step="0.1" value="26.0" />
+                      <button id="introFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
+                    <div class="l--inline-setting">
+                      <p class="c--setting-field-label">終了位置</p>
+                      <input id="introFadeEnd" type="number" min="0" step="0.1" value="29.0" />
+                      <button id="introFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </article>
+          </section>
+
+          <section class="c--media-section" aria-labelledby="outro-heading">
+            <div class="l--section-header">
+              <h2 id="outro-heading" class="c--field-heading">アウトロ</h2>
+              <div class="l--heading-action">
+                <button id="outroSelectButton" class="c--file-action c--file-action-primary" type="button">エンディング音源を選択</button>
+              </div>
+            </div>
+            <input id="outroFile" class="u--sr-only" type="file" accept="audio/*" />
+            <p id="outroMeta" class="c--media-meta"></p>
+            <article class="c--media-panel" data-file-card="outroFile">
+              <div class="c--waveform-shell">
+                <div class="c--waveform-scroll js--waveform-scroll">
+                  <canvas id="outroWaveform" class="c--waveform-canvas" width="640" height="88"></canvas>
+                </div>
+                <p id="outroWaveformStatus" class="c--waveform-status" aria-live="polite">波形を準備中...</p>
+              </div>
+              <div class="l--media-toolbar">
+                <div class="l--preview-controls">
+                  <div class="l--preview-button-group">
+                    <button id="outroPreviewButton" class="c--preview-button" type="button">▶ 試聴</button>
+                    <p id="outroPreviewTime" class="c--preview-time">0:00 / 0:00</p>
+                    <div class="l--jump-buttons">
+                      <button id="outroJumpStartButton" class="c--jump-button" type="button" disabled title="先頭に移動" aria-label="先頭に移動">⏮</button>
+                      <button id="outroJumpTargetButton" class="c--jump-button c--jump-trim-end" type="button" disabled title="トーク終了位置に移動" aria-label="トーク終了位置に移動"></button>
+                      <button id="outroJumpFadeStartButton" class="c--jump-button c--jump-fade-start" type="button" disabled title="フェードアウト開始位置に移動" aria-label="フェードアウト開始位置に移動"></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="l--volume-inline">
+                  <div class="l--label-with-info">
+                    <label for="outroMusicVolume">基本音量</label>
+                    <button id="outroDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
+                  </div>
+                  <input id="outroMusicVolume" type="number" min="0" max="1" step="0.01" value="0.22" />
+                  <label for="outroDuckLevel">トーク中音量</label>
+                  <div class="l--input-suffix">
+                    <input id="outroDuckLevel" type="number" min="0" max="100" step="5" value="30" />
+                    <span class="c--input-suffix">%</span>
+                  </div>
+                </div>
+                <div class="l--zoom-toolbar">
+                  <div class="c--zoom-control" aria-label="アウトロ音源の波形ズーム">
+                    <div id="outroWaveformZoomPresets" class="l--zoom-presets">
+                      <button class="c--zoom-preset" type="button" data-zoom="1">全体</button>
+                      <button class="c--zoom-preset" type="button" data-zoom="8">中</button>
+                      <button class="c--zoom-preset" type="button" data-zoom="48">詳細</button>
+                    </div>
+                    <div class="l--zoom-buttons">
+                      <button id="outroWaveformZoomOut" class="c--zoom-button" type="button" aria-label="アウトロ音源の波形を縮小">-</button>
+                      <span id="outroWaveformZoomValue" class="c--zoom-value" aria-live="polite">1.0x</span>
+                      <button id="outroWaveformZoomIn" class="c--zoom-button" type="button" aria-label="アウトロ音源の波形を拡大">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="l--preview-scrubber">
+                <input id="outroPreviewSeek" class="c--preview-seek" type="range" min="0" max="0" step="0.1" value="0" />
+              </div>
+              <section class="c--setting-card" aria-labelledby="outro-overlap-label">
+                <header class="c--setting-card-header">
+                  <h3 id="outro-overlap-label" class="c--setting-card-title">トーク終了位置</h3>
+                  <button id="outroOverlapInfoButton" class="c--info-button" type="button" aria-label="トーク終了位置 について">ⓘ</button>
+                </header>
+                <div class="c--setting-card-body">
+                  <div class="l--inline-setting">
+                    <input id="outroOverlap" type="number" min="0" step="0.1" value="98.0" />
+                    <button id="outroOverlapSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                  </div>
+                  <p><small>例: `8.0` なら、アウトロ開始から8秒の地点がトークの終わりに揃います</small></p>
+                </div>
+              </section>
+              <section class="c--setting-card" aria-labelledby="outro-fade-label">
+                <header class="c--setting-card-header">
+                  <h3 id="outro-fade-label" class="c--setting-card-title">フェードアウト</h3>
+                </header>
+                <div class="c--setting-card-body">
+                  <div class="l--setting-columns">
+                    <div class="l--inline-setting">
+                      <p class="c--setting-field-label">開始位置</p>
+                      <input id="outroFadeStart" type="number" min="0" step="0.1" value="114.0" />
+                      <button id="outroFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
+                    <div class="l--inline-setting">
+                      <p class="c--setting-field-label">終了位置</p>
+                      <input id="outroFadeEnd" type="number" min="0" step="0.1" value="118.0" />
+                      <button id="outroFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </article>
+          </section>
+
+          <section class="c--media-section" aria-labelledby="quality-heading">
+            <h2 id="quality-heading" class="c--field-heading">音質</h2>
+            <article class="c--media-panel">
+              <section class="c--setting-card" aria-labelledby="mp3-bitrate-label">
+                <header class="c--setting-card-header">
+                  <h3 id="mp3-bitrate-label" class="c--setting-card-title">ビットレート</h3>
+                  <button id="mp3BitrateInfoButton" class="c--info-button" type="button" aria-label="MP3 ビットレート について">ⓘ</button>
+                </header>
+                <div class="c--setting-card-body">
+                  <div class="c--radio-group" role="radiogroup" aria-labelledby="mp3-bitrate-label">
+                    <label class="c--radio">
+                      <input type="radio" name="mp3Bitrate" value="128k" checked />
+                      <span>128 kbps</span>
+                    </label>
+                    <label class="c--radio">
+                      <input type="radio" name="mp3Bitrate" value="160k" />
+                      <span>160 kbps</span>
+                    </label>
+                    <label class="c--radio">
+                      <input type="radio" name="mp3Bitrate" value="192k" />
+                      <span>192 kbps</span>
+                    </label>
+                  </div>
+                </div>
+              </section>
+            </article>
+          </section>
+        </div>
+
+        <div class="l--actions l--actions--sticky">
+          <button id="loadButton" class="c--button" disabled>設定完了</button>
+        </div>
+      </section>
+
+      <div id="actionModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="actionModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="actionModalTitle" class="c--modal-title">書き出し</h2>
+            <button id="actionModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <div class="l--actions">
+              <button id="previewOpeningButton" class="c--button c--button-secondary" disabled>▶ オープニングを試聴</button>
+              <button id="previewEndingButton" class="c--button c--button-secondary" disabled>▶ エンディングを試聴</button>
+              <button id="processButton" class="c--button" disabled>書き出す</button>
+            </div>
+
+            <div id="mixPreviewBlock" class="c--mix-preview">
+              <div id="mixPreviewOpeningClip" class="c--mix-preview-clip">
+                <p class="c--mix-preview-label">オープニング（先頭 30s のサンプル）</p>
+                <audio id="mixPreviewOpening" controls></audio>
+              </div>
+              <div id="mixPreviewEndingClip" class="c--mix-preview-clip">
+                <p class="c--mix-preview-label">エンディング（末尾 30s のサンプル）</p>
+                <audio id="mixPreviewEnding" controls></audio>
+              </div>
+            </div>
+
+            <div id="statusBlock" class="c--status">
+              <div class="c--meter">
+                <div id="meterBar" class="c--meter-bar"></div>
+              </div>
+              <div class="l--status-line">
+                <p id="statusText" aria-live="polite">未初期化</p>
+                <button id="logToggle" type="button" class="c--log-toggle" aria-expanded="false" aria-controls="logBox">ログを見る ▼</button>
+              </div>
+              <pre id="logBox" class="c--log-box is--hidden"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="duckingInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="duckingInfoModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="duckingInfoModalTitle" class="c--modal-title">基本音量とトーク中音量</h2>
+            <button id="duckingInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <p>BGM の音量は、トークが入っているかどうかで自動的に切り替わります（Ducking）。</p>
+            <p><strong>基本音量</strong>: トークが入っていない区間（イントロの前半、アウトロの後半など）で再生される、BGM の素の音量。</p>
+            <p><strong>トーク中音量</strong>: トークが BGM に被さっている区間での、基本音量に対する割合。たとえば 30% にすると、トーク中は基本音量の 30% まで自動で下がり、トークが終わると基本音量に戻ります。</p>
+            <p>切り替えはガクつかないよう短いフェードで行われます。トークが少しでも聞こえづらいときは、トーク中音量を小さく（10〜20%）してみてください。</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="introPadInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="introPadInfoModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="introPadInfoModalTitle" class="c--modal-title">トーク開始位置（イントロ）</h2>
+            <button id="introPadInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <p>イントロ BGM の何秒目からトークが乗ってくるか、を指定する値です。</p>
+            <p>たとえば <strong>10 秒</strong>に設定すると、最初の 10 秒間はイントロ BGM だけが流れ、10 秒目からトークがフェードインしてきます。</p>
+            <p>イントロの波形上にある<span style="color: rgb(251,191,36); font-weight: 700;">黄色のハンドル</span>をドラッグしても変更できます。BGM のキメや盛り上がりに合わせて配置するのがおすすめです。</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="outroOverlapInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="outroOverlapInfoModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="outroOverlapInfoModalTitle" class="c--modal-title">トーク終了位置（アウトロ）</h2>
+            <button id="outroOverlapInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <p>アウトロ BGM の何秒目でトークが終わるか、を指定する値です。</p>
+            <p>たとえば <strong>98 秒</strong>に設定すると、アウトロ BGM の頭から 98 秒目でトークが終わり、その後はアウトロ BGM だけが残って自然にフェードアウトします。</p>
+            <p>アウトロの波形上にある<span style="color: rgb(244,63,94); font-weight: 700;">赤色のハンドル</span>をドラッグしても変更できます。BGM のエンディングが綺麗に締まる位置に合わせるのがコツです。</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="talkTrimInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="talkTrimInfoModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="talkTrimInfoModalTitle" class="c--modal-title">トークの使用範囲</h2>
+            <button id="talkTrimInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <p>アップロードしたトーク音源のうち、書き出しに含める範囲を指定します。</p>
+            <p><strong>開始位置</strong>: ここより前は無視されます。録音前のテスト音声、咳払い、雑談などを切り落とすのに使います。</p>
+            <p><strong>終了位置</strong>: ここより後は無視されます。0 のままなら末尾まで全部使います。</p>
+            <p>波形上のハンドル（<span style="color: rgb(251,191,36); font-weight: 700;">黄</span>=開始 / <span style="color: rgb(244,63,94); font-weight: 700;">赤</span>=終了）をドラッグしても調整できます。</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="mp3BitrateInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="mp3BitrateInfoModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="mp3BitrateInfoModalTitle" class="c--modal-title">MP3 ビットレート</h2>
+            <button id="mp3BitrateInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <p>書き出す mp3 の音質（=ファイルサイズ）を決めます。数値が大きいほど高音質ですがファイルも大きくなります。</p>
+            <ul>
+              <li><strong>128 kbps</strong>: 軽量。話し声中心のポッドキャストなら十分な品質。<strong>迷ったらこれ</strong></li>
+              <li><strong>160 kbps</strong>: 中間。BGM や効果音もそこそこ綺麗に</li>
+              <li><strong>192 kbps</strong>: 高音質。音楽要素が多い、または妥協したくない場合</li>
+            </ul>
+            <p>1 時間の番組での目安: 128 kbps ≈ 55 MB / 160 ≈ 70 MB / 192 ≈ 85 MB。</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="voiceLufsInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="voiceLufsInfoModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="voiceLufsInfoModalTitle" class="c--modal-title">目標LUFS とは</h2>
+            <button id="voiceLufsInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <p>LUFS（Loudness Units relative to Full Scale）は、人間の耳が感じる音の大きさを国際標準で数値化した指標です。マイナス値で表され、<strong>0 に近いほど大きく、値が小さい（マイナスが深い）ほど静か</strong>になります。</p>
+            <p>本ツールでは話し声をこの目標値に揃え、聞き手にとって安定した音量で配信できるようにします。</p>
+            <p>主な配信プラットフォームの基準目安:</p>
+            <ul>
+              <li><strong>Spotify / Apple Podcasts</strong>: -14 〜 -16 LUFS</li>
+              <li><strong>YouTube</strong>: -14 LUFS</li>
+              <li><strong>一般的なポッドキャスト</strong>: <strong>-16 LUFS</strong>（このツールの初期値）</li>
+            </ul>
+            <p>多くのプラットフォームは再生時に自動正規化を行うため、目安値に揃えておくと「再生環境による音量差」が小さくなります。迷ったら <strong>-16</strong> のままで OK です。</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="c--footer">
+      <p class="c--footer-copy">© <a class="c--footer-link" href="https://bootcamp.fjord.jp/" target="_blank" rel="noopener noreferrer">FjordBootCamp</a></p>
+      <a class="c--footer-link" href="#" target="_blank" rel="noopener noreferrer">
+        <span aria-hidden="true">⌥</span>
+        View on GitHub
+      </a>
+    </footer>
+
+    <script type="module" src="/web/app.js"></script>
+  </body>
+</html>

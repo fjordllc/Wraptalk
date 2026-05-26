@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "test": "node --test web/*.test.js"
+  },
+  "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.12.1"
+  }
+}
