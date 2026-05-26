@@ -682,9 +682,13 @@ function restoreSettings() {
     }
   }
   if (typeof data.mp3Bitrate === "string") {
-    const radio = document.querySelector(`input[name="mp3Bitrate"][value="${data.mp3Bitrate}"]`);
-    if (radio instanceof HTMLInputElement) {
-      radio.checked = true;
+    // Compare .value in JS instead of interpolating into a selector so a
+    // tampered localStorage value (with " or ]) can't break querySelector().
+    for (const radio of document.querySelectorAll('input[name="mp3Bitrate"]')) {
+      if (radio instanceof HTMLInputElement && radio.value === data.mp3Bitrate) {
+        radio.checked = true;
+        break;
+      }
     }
   }
 }
@@ -761,6 +765,9 @@ function bindDropZone(input) {
   });
 }
 
+const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "m4a", "aac", "flac", "opus", "weba"]);
+const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "mkv", "webm", "avi", "m4v"]);
+
 function isAcceptableFile(input, file) {
   const accept = input.accept;
   if (!accept) {
@@ -772,13 +779,23 @@ function isAcceptableFile(input, file) {
   }
   const type = (file.type || "").toLowerCase();
   const name = (file.name || "").toLowerCase();
+  const dot = name.lastIndexOf(".");
+  const ext = dot >= 0 ? name.slice(dot + 1) : "";
   return tokens.some((token) => {
     const t = token.toLowerCase();
     if (t.startsWith(".")) {
       return name.endsWith(t);
     }
+    if (t === "audio/*") {
+      // file.type can be empty for legit audio files on some browsers / OS,
+      // so fall back to the well-known audio extensions list.
+      return type.startsWith("audio/") || AUDIO_EXTENSIONS.has(ext);
+    }
+    if (t === "video/*") {
+      return type.startsWith("video/") || VIDEO_EXTENSIONS.has(ext);
+    }
     if (t.endsWith("/*")) {
-      const prefix = t.slice(0, -1); // keep slash
+      const prefix = t.slice(0, -1);
       return type.startsWith(prefix);
     }
     return type === t;
