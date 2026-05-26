@@ -323,14 +323,58 @@ async function processMixPreview(kind) {
   setStatus(kind === "opening" ? "オープニングのプレビューが準備できました" : "エンディングのプレビューが準備できました");
 }
 
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const modalFocusReturn = new WeakMap();
+
+function getFocusableElements(modal) {
+  return Array.from(modal.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
+    (el) => el.offsetParent !== null,
+  );
+}
+
+function trapFocus(modal, event) {
+  if (event.key !== "Tab") {
+    return;
+  }
+  const focusable = getFocusableElements(modal);
+  if (focusable.length === 0) {
+    event.preventDefault();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+  if (!modal.contains(active)) {
+    event.preventDefault();
+    first.focus();
+    return;
+  }
+  if (event.shiftKey && active === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function openModal(modal) {
+  modalFocusReturn.set(modal, document.activeElement instanceof HTMLElement ? document.activeElement : null);
   modal.classList.add("is--open");
   modal.setAttribute("aria-hidden", "false");
+  // Move initial focus inside the modal so keyboard / screen reader users land inside it.
+  const focusable = getFocusableElements(modal);
+  const initial = focusable.find((el) => !el.classList.contains("c--modal-close")) ?? focusable[0];
+  initial?.focus();
 }
 
 function closeModal(modal) {
   modal.classList.remove("is--open");
   modal.setAttribute("aria-hidden", "true");
+  const returnTo = modalFocusReturn.get(modal);
+  modalFocusReturn.delete(modal);
+  returnTo?.focus?.();
 }
 
 function openActionModal() {
@@ -340,6 +384,18 @@ function openActionModal() {
 function closeActionModal() {
   closeModal(actionModal);
 }
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Tab") {
+    return;
+  }
+  const openInfo = infoModalEntries.find((entry) => entry.modal?.classList.contains("is--open"));
+  if (openInfo) {
+    trapFocus(openInfo.modal, event);
+  } else if (actionModal.classList.contains("is--open")) {
+    trapFocus(actionModal, event);
+  }
+});
 
 loadButton.addEventListener("click", async () => {
   openActionModal();
@@ -392,7 +448,7 @@ document.addEventListener("keydown", (event) => {
   const openInfo = infoModalEntries.find((entry) => entry.modal?.classList.contains("is--open"));
   if (openInfo) {
     closeModal(openInfo.modal);
-  } else if (actionModal.classList.contains("is--open")) {
+  } else if (actionModal?.classList.contains("is--open")) {
     closeActionModal();
   }
 });
