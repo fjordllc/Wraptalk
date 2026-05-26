@@ -242,11 +242,10 @@ const PREVIEW_SEGMENT_SEC = 30;
 export async function renderMixPreview(spec, kind) {
   validateMixSpec(spec);
 
-  const names = {
-    inputName: `input.${extFromName(spec.input.name, "mp4")}`,
-    introName: `intro.${extFromName(spec.intro.name, "wav")}`,
-    outroName: `outro.${extFromName(spec.outro.name, "wav")}`,
-  };
+  // Reuse the same naming as runMix so the input/intro/outro names stay
+  // in lockstep across both flows. outputName is preview-specific.
+  const { inputName, introName, outroName } = deriveMixFileNames(spec);
+  const names = { inputName, introName, outroName };
   const outputName = `preview_${kind}.mp3`;
   const { onStatus } = spec;
   const segmentDurationSec = PREVIEW_SEGMENT_SEC;
