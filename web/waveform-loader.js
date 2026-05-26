@@ -43,25 +43,25 @@ async function decodeWaveformWithFFmpeg(input, fallbackUrl) {
     ? await fetchFile(input.files[0])
     : await fetchFile(fallbackUrl);
 
-  await ffmpegRuntime.writeFile(sourceName, sourceData);
-  await ffmpegRuntime.exec([
-    "-i",
-    sourceName,
-    "-vn",
-    "-ac",
-    "1",
-    "-ar",
-    "22050",
-    outputName,
-  ]);
+  try {
+    await ffmpegRuntime.writeFile(sourceName, sourceData);
+    await ffmpegRuntime.exec([
+      "-i",
+      sourceName,
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      "22050",
+      outputName,
+    ]);
 
-  const wavData = await ffmpegRuntime.readFile(outputName);
-  const audioContext = getAudioContext();
-  const audioBuffer = await audioContext.decodeAudioData(wavData.buffer.slice(0));
-
-  await ffmpegRuntime.cleanupFiles([sourceName, outputName]);
-
-  return audioBuffer;
+    const wavData = await ffmpegRuntime.readFile(outputName);
+    const audioContext = getAudioContext();
+    return await audioContext.decodeAudioData(wavData.buffer.slice(0));
+  } finally {
+    await ffmpegRuntime.cleanupFiles([sourceName, outputName]);
+  }
 }
 
 /**

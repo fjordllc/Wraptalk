@@ -162,6 +162,7 @@ export class PreviewController {
     this.audioBuffer = null;
     this.duration = 0;
     this.zoomLevel = MIN_WAVEFORM_ZOOM;
+    this.waveformToken = 0;
   }
 
   applyVolume() {
@@ -628,15 +629,23 @@ export class PreviewController {
       return;
     }
 
+    const token = ++this.waveformToken;
     setWaveformStatus(this, "波形を解析中...", true);
 
     try {
       const audioBuffer = await loadAudioBuffer(this.input, this.fallbackUrl);
+      if (token !== this.waveformToken) {
+        // A newer renderWaveform() call has started; discard this stale result.
+        return;
+      }
       this.audioBuffer = audioBuffer;
       this.peaks = extractPeaks(audioBuffer, Math.max(180, Math.round(this.canvas.width / 3)));
       this.duration = audioBuffer.duration;
       setWaveformStatus(this, "", false);
     } catch (error) {
+      if (token !== this.waveformToken) {
+        return;
+      }
       this.audioBuffer = null;
       this.peaks = null;
       this.duration = 0;

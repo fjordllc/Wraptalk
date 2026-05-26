@@ -233,6 +233,13 @@ async function handleLoadFFmpeg() {
   setStatus("準備完了");
 }
 
+function clampRange(value, min, max, label) {
+  if (value < min || value > max) {
+    throw new Error(`${label}は ${min}〜${max} の範囲で入力してください (現在: ${value})`);
+  }
+  return value;
+}
+
 async function readMixSpec() {
   const input = requireFile(inputFile, "トーク音源");
   const intro = await resolveAudioInput(introFile, DEFAULT_INTRO_URL, DEFAULT_INTRO_NAME, "イントロ音源");
@@ -241,13 +248,13 @@ async function readMixSpec() {
     input,
     intro,
     outro,
-    introPad: parseRequiredNumber(introPadInput.value, "イントロの開始位置"),
-    outroOverlap: parseRequiredNumber(outroOverlapInput.value, "アウトロの開始位置"),
-    voiceLufs: parseRequiredNumber(voiceLufsInput.value, "話し声の目標LUFS"),
-    introMusicVolume: parseRequiredNumber(introMusicVolumeInput.value, "イントロの基本音量"),
-    outroMusicVolume: parseRequiredNumber(outroMusicVolumeInput.value, "アウトロの基本音量"),
-    introDuckLevel: parseRequiredNumber(introDuckLevelInput.value, "イントロのトーク中音量") / 100,
-    outroDuckLevel: parseRequiredNumber(outroDuckLevelInput.value, "アウトロのトーク中音量") / 100,
+    introPad: clampRange(parseRequiredNumber(introPadInput.value, "イントロの開始位置"), 0, 600, "イントロの開始位置"),
+    outroOverlap: clampRange(parseRequiredNumber(outroOverlapInput.value, "アウトロの開始位置"), 0, 600, "アウトロの開始位置"),
+    voiceLufs: clampRange(parseRequiredNumber(voiceLufsInput.value, "話し声の目標LUFS"), -40, -8, "話し声の目標LUFS"),
+    introMusicVolume: clampRange(parseRequiredNumber(introMusicVolumeInput.value, "イントロの基本音量"), 0, 1, "イントロの基本音量"),
+    outroMusicVolume: clampRange(parseRequiredNumber(outroMusicVolumeInput.value, "アウトロの基本音量"), 0, 1, "アウトロの基本音量"),
+    introDuckLevel: clampRange(parseRequiredNumber(introDuckLevelInput.value, "イントロのトーク中音量"), 0, 100, "イントロのトーク中音量") / 100,
+    outroDuckLevel: clampRange(parseRequiredNumber(outroDuckLevelInput.value, "アウトロのトーク中音量"), 0, 100, "アウトロのトーク中音量") / 100,
     introFadeStart: Math.max(0, parseRequiredNumber(introFadeStartInput.value, "イントロのフェード開始")),
     introFadeEnd: Math.max(0, parseRequiredNumber(introFadeEndInput.value, "イントロのフェード終了")),
     outroFadeStart: Math.max(0, parseRequiredNumber(outroFadeStartInput.value, "アウトロのフェード開始")),
