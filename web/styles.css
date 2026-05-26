@@ -266,6 +266,13 @@ h1 {
   width: 100%;
 }
 
+.c--media-panel.is--dragover {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+  border-radius: 12px;
+  background: rgba(var(--accent-deep-rgb), 0.08);
+}
+
 /* ============================================================
    04 / File Select Button
    ============================================================ */

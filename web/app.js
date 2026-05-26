@@ -712,6 +712,45 @@ for (const [button, input] of [
   });
 }
 
+function bindDropZone(input) {
+  if (!input) {
+    return;
+  }
+  const card = document.querySelector(`[data-file-card="${input.id}"]`);
+  if (!card) {
+    return;
+  }
+  card.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "copy";
+    }
+    card.classList.add("is--dragover");
+  });
+  card.addEventListener("dragleave", (event) => {
+    // Only clear when leaving the card itself, not bubbling from children.
+    if (event.target === card) {
+      card.classList.remove("is--dragover");
+    }
+  });
+  card.addEventListener("drop", (event) => {
+    event.preventDefault();
+    card.classList.remove("is--dragover");
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) {
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+for (const input of [inputFile, introFile, outroFile]) {
+  bindDropZone(input);
+}
+
 const actionButtons = [processButton, previewOpeningButton, previewEndingButton];
 
 async function runExclusiveAction(operation, failStatus) {
