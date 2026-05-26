@@ -77,6 +77,8 @@ function buildOutroEnvelope(duckEnd, fadeStart, fadeEnd, duckLevel = DEFAULT_DUC
  * @property {number} voiceLufs
  * @property {number} introMusicVolume
  * @property {number} outroMusicVolume
+ * @property {number} introDuckLevel
+ * @property {number} outroDuckLevel
  * @property {number} introFadeStart
  * @property {number} introFadeEnd
  * @property {number} outroFadeStart
@@ -125,7 +127,9 @@ export function buildFilter({
  * @param {Object} params
  * @param {number} params.speechDelayMs
  * @param {number} params.introPad
+ * @param {number} params.voiceLufs
  * @param {number} params.introMusicVolume
+ * @param {number} params.introDuckLevel
  * @param {number} params.introFadeStart
  * @param {number} params.introFadeEnd
  * @param {number} params.talkTrimStart
@@ -166,7 +170,9 @@ export function buildOpeningPreviewFilter({
  * @param {number} params.outroDelayMs
  * @param {number} [params.outroSourceStart]
  * @param {number} params.outroDuckEnd
+ * @param {number} params.voiceLufs
  * @param {number} params.outroMusicVolume
+ * @param {number} params.outroDuckLevel
  * @param {number} params.outroFadeStart
  * @param {number} params.outroFadeEnd
  * @param {number} params.talkTrimStart
