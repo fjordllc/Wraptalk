@@ -2,25 +2,29 @@
 
 ## Current State
 
+- 公開デモ: https://wraptalk.pages.dev/ (Cloudflare Pages)
 - ブラウザ版がメイン。`index.html` を HTTP で配信すれば動作する静的サイト
-- 依存ランタイムは `ffmpeg.wasm` のみ（`node_modules/@ffmpeg/*` をローカルから配信）
-- スタイル: `web/styles.css` 単一ファイル + ITCSS 風プリフィックス命名 + 12 セクションの TOC
-- JS: ES Module で 7 ファイルに分割（`web/{app,dom,utils,waveform,preview,mix,filter}.js`）+ `web/*.test.js` × 3
+- 依存ランタイム:
+  - `@ffmpeg/ffmpeg` + `@ffmpeg/util` は `vendor/` にコミット
+  - `@ffmpeg/core` (32MB の wasm) は jsDelivr CDN から読み込み（Cloudflare Pages の 1 ファイル 25MiB 制限回避）
+- スタイル: `web/styles.css` 単一ファイル + ITCSS 風プリフィックス命名
+- JS: ES Module で分割（`web/{app,dom,utils,waveform,waveform-loader,preview,mix,filter}.js`）+ `web/*.test.js` × 3
 - デフォルト音源は `opening.wav` / `ending.wav` をリポジトリ直下に配置
+- ライセンス: MIT
 - 旧来のシェル版 `podcast_auto.sh` と `Wraptalk.app` は長尺フォールバックとして残置
 
 ## Module Layout (web/)
 
 | File | Lines | 役割 |
 |------|-------|------|
-| `app.js` | 359 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg |
-| `preview.js` | 588 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結 |
-| `waveform.js` | 400 | 波形描画、ズーム、各種ハンドルの位置計算 / hit-test、カーソル切替 |
-| `mix.js` | 281 | `FfmpegRuntime` クラス、`runMix` (spec → mp3 blob) と分割されたステップ関数群 |
+| `preview.js` | 654 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。ジャンプボタン (jumps[]) は config 配列で柔軟に |
+| `app.js` | 576 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群 |
+| `waveform.js` | 423 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
+| `mix.js` | 417 | `FfmpegRuntime` クラス、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別) と分割されたステップ関数群 |
+| `filter.js` | 205 | `buildFilter` / `buildOpeningPreviewFilter` / `buildEndingPreviewFilter` + envelope ヘルパー。Node からテスト可能 |
+| `dom.js` | 127 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
 | `waveform-loader.js` | 84 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード) |
-| `dom.js` | 83 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
 | `utils.js` | 71 | 純粋関数 + JSDoc 型注釈付き |
-| `filter.js` | 56 | `buildFilter` のみ。Node からテスト可能 |
 
 すべての JS ファイル冒頭に `// @ts-check` を付けて、JSDoc 型注釈で TS-aware エディタ上で型補完 + エラー検知が効くようになっている。
 
@@ -43,11 +47,79 @@ utils.js ──┬──────────┤
 
 ## Tests
 
-`web/*.test.js` は `node:test` ベース。`npm test` で一括実行。
+`web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (56 ケース)。
 
-- `web/filter.test.js` (10 ケース) — buildFilter のロジック + スナップショット
-- `web/utils.test.js` (19 ケース) — parse / clamp / formatTime / extFromName
-- `web/waveform.test.js` (16 ケース) — handle positions / hit-tests (canvas mock)
+- `web/filter.test.js` — buildFilter / buildOpeningPreviewFilter / buildEndingPreviewFilter のロジック + 構造アサーション
+- `web/utils.test.js` — parse / clamp / formatTime / extFromName
+- `web/waveform.test.js` — handle positions / hit-tests / trim handles (canvas mock)
+
+## 音声処理チェーン
+
+### トーク (speech)
+```
+aformat (mono, 44.1kHz)
+→ highpass=100Hz       低域ゴロ・空調ノイズカット
+→ lowpass=14000Hz      高域シャカつきカット
+→ equalizer(170, -3dB, w=2)  もこもこ帯域カット
+→ loudnorm(I=voiceLufs, TP=-2, LRA=11)  LUFS ターゲット
+→ adynamicequalizer(6500Hz, threshold=3, mode=cut, ratio=4)  歯擦音 de-ess (loudnorm 後に局所圧縮)
+→ asplit + 各ch EQ (擬似ステレオ: L=3500+2dB+325-1dB, R=逆相)
+→ join (stereo)
+→ adelay(speechDelayMs)
+```
+
+### BGM (intro / outro)
+```
+aformat (stereo, 44.1kHz)
+→ volume = ${baseVolume}                    UI の「基本音量」
+→ volume = ${envelope}                      時刻ベース Ducking (詳細は filter.js)
+→ (outro のみ) adelay(outroStartMs)
+```
+
+### ミックス
+```
+[speech][intro_music][outro_music] amix=inputs=3:duration=longest:normalize=0
+→ alimiter(limit=0.89, attack=5, release=50)  最終ピーク保護 (-1dB)
+```
+
+### Ducking envelope
+- 時刻ベース。トーク開始/終了タイミングを基準に、BGM の音量を `1.0 → DUCK_LEVEL` に滑らかに切替
+- `DUCK_FADE_DUR = 0.4s` で短いフェード
+- `DUCK_LEVEL` は UI 入力 (intro/outro 別、% 表記)。デフォルト `0.3` (=30%)
+- リアルタイムサイドチェイン圧縮ではなく envelope なので、トークの切れ目で BGM が瞬間的に上がる「パンピング」が起きない
+
+## デプロイ
+
+### Cloudflare Pages
+- main ブランチ push で自動デプロイ
+- Build command: `npm run build` (リポジトリ資産を `dist/` にコピー)
+- Build output: `dist`
+- 配信 URL: https://wraptalk.pages.dev/
+
+### Headers (`_headers`)
+`SharedArrayBuffer` (ffmpeg.wasm マルチスレッド) 用に COOP/COEP を必須。Cloudflare Pages は `_headers` ファイルを自動解釈してレスポンスに付与:
+```
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+```
+
+### 依存ファイルの配信戦略
+| 依存 | 配信方法 | 理由 |
+|---|---|---|
+| `@ffmpeg/ffmpeg` (~128KB) | `vendor/` にコミット | サイズ小、外部依存を減らしたい |
+| `@ffmpeg/util` (~80KB) | `vendor/` にコミット | 同上 |
+| `@ffmpeg/core` (32MB) | jsDelivr CDN | Cloudflare Pages の 1 ファイル 25MiB 制限を超えるため |
+
+jsDelivr は `Access-Control-Allow-Origin: *` + `Cross-Origin-Resource-Policy: cross-origin` を返すので COEP 下でも問題なく読める。
+
+### build スクリプト
+```bash
+npm run build
+# = rm -rf dist && mkdir -p dist && cp -R index.html web vendor opening.wav ending.wav _headers dist/
+```
+
+`node_modules` は gitignore 済み。Cloudflare 側で `npm install` が走るが、`dist/` には含まれない。
 
 ## Waveform Interaction Model
 
@@ -176,6 +248,22 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 - 2026-05: ファイル選択中のメタ情報（ファイル名 / デフォルト音源案内）を waveform 上部に表示
 - 2026-05: プレビューボタンを `▶ Preview` → `▶ 試聴`、`■ Stop` → `■ 停止` に日本語化
 - 2026-05: `.l--inline-setting` の数値入力欄を `text-align: right` + `tabular-nums` で値を揃えて表示
+- 2026-05: 時刻ベース Ducking envelope に置き換え (sidechaincompress 撤去)。`DUCK_LEVEL` / `DUCK_FADE_DUR` 定数
+- 2026-05: トーク中音量を UI 入力化 (% 表記、デフォルト 30%)。intro/outro 別 → `introDuckLevel` / `outroDuckLevel`
+- 2026-05: 擬似ステレオ (EQ split 方式)。L=3500/+2dB+325/-1dB, R=逆相
+- 2026-05: 最終 `alimiter=limit=0.89` を全フィルタに追加 (mix 後のクリップ防止)
+- 2026-05: speech チェーンを `acompressor + dynaudnorm + loudnorm` → `loudnorm` のみに簡素化。3 段ダイナミック処理の重複を解消
+- 2026-05: 歯擦音 de-esser を `adynamicequalizer` で実装、loudnorm の後ろに配置 (再増幅されないように)
+- 2026-05: ズームプリセット (全体/中/詳細) を 3 波形に追加。MAX_WAVEFORM_ZOOM = 48
+- 2026-05: トーク/イントロ/アウトロにジャンプボタン (⏮ 先頭 + 黄/赤/緑 ハンドル位置) を追加。preview.js の jumps[] config で柔軟に
+- 2026-05: 6 個の用語に ⓘ 説明モーダルを追加 (LUFS / 基本音量 + トーク中音量 / トーク開始位置 / トーク終了位置 / 使用範囲 / MP3 ビットレート)。`infoModalEntries` 配列で配線を集約
+- 2026-05: モーダル下部のログを折りたたみ式に (ログを見る ▼ / ログを隠す ▲)
+- 2026-05: ステータスメッセージ末尾の `...` をアニメーション化 (loading 表現)
+- 2026-05: アクション排他化 (試聴/書き出しを同時実行できないように)。`runExclusiveAction` ヘルパー
+- 2026-05: プレビュー速度最適化 (kind 別フィルタ + 必要 BGM のみ書き込み)
+- 2026-05: フッター追加 (© FjordBootCamp + View on GitHub リンク)
+- 2026-05: MIT ライセンス追加 → OSS 化
+- 2026-05: Cloudflare Pages デプロイ。`_headers` で COOP/COEP、`@ffmpeg/core` を jsDelivr CDN、`vendor/` で `@ffmpeg/ffmpeg`+`util` をコミット。`npm run build` で `dist/` 生成
 
 ## Open Questions
 

@@ -17,7 +17,8 @@ function buildPseudoStereoLines(monoLabel, stereoLabel) {
   ];
 }
 
-const SPEECH_PROCESS_CHAIN = "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=mono,highpass=f=100,lowpass=f=14000,acompressor=threshold=0.2:ratio=1.8:attack=8:release=180:makeup=1.1:knee=2.8,equalizer=f=170:t=q:w=2:g=-3,dynaudnorm=f=200:g=15:p=0.92";
+const SPEECH_PROCESS_CHAIN = "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=mono,highpass=f=100,lowpass=f=14000,equalizer=f=170:t=q:w=2:g=-3";
+const DE_ESSER = "adynamicequalizer=threshold=3:dfrequency=6500:dqfactor=2:tfrequency=6500:tqfactor=2:mode=cut:ratio=4:attack=5:release=50:makeup=0";
 const MUSIC_FORMAT_CHAIN = "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo";
 const LIMITER = "alimiter=limit=0.89:attack=5:release=50";
 
@@ -109,7 +110,7 @@ export function buildFilter({
   const outroEnvelope = buildOutroEnvelope(safeOutroOverlap, outroFadeStart, outroFadeEnd, outroDuckLevel);
   const trimPrefix = buildTalkPrefix(talkTrimStart, talkTrimEnd);
   return [
-    `[0:a]${trimPrefix}${SPEECH_PROCESS_CHAIN},loudnorm=I=${voiceLufs}:TP=-2:LRA=11[speech_mono]`,
+    `[0:a]${trimPrefix}${SPEECH_PROCESS_CHAIN},loudnorm=I=${voiceLufs}:TP=-2:LRA=11,${DE_ESSER}[speech_mono]`,
     ...buildPseudoStereoLines("speech_mono", "speech"),
     `[speech]adelay=${speechDelayMs}|${speechDelayMs}[speech_delayed]`,
     `[1:a]${MUSIC_FORMAT_CHAIN},volume=${introMusicVolume},volume='${introEnvelope}':eval=frame[intro_music]`,
@@ -148,7 +149,7 @@ export function buildOpeningPreviewFilter({
   const trimPrefix = buildTalkPrefix(talkTrimStart, talkTrimEnd);
   const fadeOutStart = Math.max(0, segmentDurationSec - 0.5);
   return [
-    `[0:a]${trimPrefix}${SPEECH_PROCESS_CHAIN},loudnorm=I=${voiceLufs}:TP=-2:LRA=11[speech_mono]`,
+    `[0:a]${trimPrefix}${SPEECH_PROCESS_CHAIN},loudnorm=I=${voiceLufs}:TP=-2:LRA=11,${DE_ESSER}[speech_mono]`,
     ...buildPseudoStereoLines("speech_mono", "speech"),
     `[speech]adelay=${speechDelayMs}|${speechDelayMs},apad=pad_dur=${segmentDurationSec}[speech_delayed]`,
     `[1:a]${MUSIC_FORMAT_CHAIN},volume=${introMusicVolume},volume='${introEnvelope}':eval=frame[intro_music]`,
@@ -193,7 +194,7 @@ export function buildEndingPreviewFilter({
     ? `atrim=start=${outroSourceStart},asetpts=PTS-STARTPTS,`
     : "";
   return [
-    `[0:a]${trimPrefix}${SPEECH_PROCESS_CHAIN},loudnorm=I=${voiceLufs}:TP=-2:LRA=11[speech_mono]`,
+    `[0:a]${trimPrefix}${SPEECH_PROCESS_CHAIN},loudnorm=I=${voiceLufs}:TP=-2:LRA=11,${DE_ESSER}[speech_mono]`,
     ...buildPseudoStereoLines("speech_mono", "speech"),
     `[speech]adelay=${speechDelayMs}|${speechDelayMs},apad=pad_dur=${segmentDurationSec}[speech_delayed]`,
     `[1:a]${outroSourcePrefix}${MUSIC_FORMAT_CHAIN},volume=${outroMusicVolume},volume='${outroEnvelope}':eval=frame,adelay=${outroDelayMs}|${outroDelayMs}[outro_music]`,

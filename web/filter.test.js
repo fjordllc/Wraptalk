@@ -55,9 +55,9 @@ test("buildFilter: talkTrimEnd <= talkTrimStart falls back to start-only", () =>
   );
 });
 
-test("buildFilter: speech chain includes dynaudnorm then loudnorm with target LUFS", () => {
+test("buildFilter: speech chain has loudnorm with target LUFS then de-esser", () => {
   const result = buildFilter({ ...baseSpec, voiceLufs: -18 });
-  assert.match(result, /dynaudnorm=f=200:g=15:p=0\.92,loudnorm=I=-18:TP=-2:LRA=11\[speech_mono\]/);
+  assert.match(result, /loudnorm=I=-18:TP=-2:LRA=11,adynamicequalizer=threshold=3.*\[speech_mono\]/);
 });
 
 test("buildFilter: intro fade expression uses introFadeStart/End", () => {
