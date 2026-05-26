@@ -248,6 +248,10 @@ h1 {
   display: none;
 }
 
+.c--media-meta.is--error {
+  color: rgb(244, 63, 94);
+}
+
 .c--media-panel {
   display: flex;
   flex-wrap: wrap;

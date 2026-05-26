@@ -43,10 +43,10 @@ async function decodeWaveformWithFFmpeg(input, fallbackUrl) {
     ? await fetchFile(input.files[0])
     : await fetchFile(fallbackUrl);
 
-  return ffmpegRuntime.withLock(async () => {
+  return ffmpegRuntime.withLock(async (fs) => {
     try {
-      await ffmpegRuntime.writeFile(sourceName, sourceData);
-      await ffmpegRuntime.exec([
+      await fs.writeFile(sourceName, sourceData);
+      await fs.exec([
         "-i",
         sourceName,
         "-vn",
@@ -57,11 +57,11 @@ async function decodeWaveformWithFFmpeg(input, fallbackUrl) {
         outputName,
       ]);
 
-      const wavData = await ffmpegRuntime.readFile(outputName);
+      const wavData = await fs.readFile(outputName);
       const audioContext = getAudioContext();
       return await audioContext.decodeAudioData(wavData.buffer.slice(0));
     } finally {
-      await ffmpegRuntime.cleanupFiles([sourceName, outputName]);
+      await fs.cleanupFiles([sourceName, outputName]);
     }
   });
 }

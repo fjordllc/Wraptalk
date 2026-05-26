@@ -198,6 +198,7 @@ function updateFileCardState(input, meta, { emptyText, defaultText, selectLabel,
   card.classList.toggle("is--selected", Boolean(file));
   card.classList.toggle("is--default", !file && Boolean(defaultText));
   if (meta) {
+    meta.classList.remove("is--error");
     if (file) {
       meta.textContent = `${file.name} を使用中`;
     } else if (defaultText) {
@@ -213,6 +214,13 @@ function updateFileCardState(input, meta, { emptyText, defaultText, selectLabel,
     button.textContent = hasSource ? changeLabel : selectLabel;
     button.classList.toggle("is--empty", !hasSource);
   }
+}
+
+function showFileCardError(input, message) {
+  const meta = document.getElementById(`${input.id.replace(/File$/, "")}Meta`);
+  if (!meta) return;
+  meta.textContent = message;
+  meta.classList.add("is--error");
 }
 
 function requireFile(input, label) {
@@ -758,6 +766,8 @@ function bindDropZone(input) {
     }
     if (!isAcceptableFile(input, file)) {
       const accept = input.accept || "";
+      const errorMsg = `非対応のファイル形式です: ${file.name}`;
+      showFileCardError(input, errorMsg);
       setStatus(`このファイル形式には対応していません（許可: ${accept || "—"}）`);
       appendLog(`ドロップされたファイル ${file.name} (${file.type || "?"}) は ${input.id} の accept "${accept}" に一致しません。`);
       return;

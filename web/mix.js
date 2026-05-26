@@ -38,7 +38,6 @@ class FfmpegRuntime {
   #isLoaded = false;
   #loadPromise = null;
   #mutex = Promise.resolve();
-  #lockDepth = 0;
   #logHandler = null;
   #progressHandler = null;
 
@@ -88,64 +87,42 @@ class FfmpegRuntime {
     return this.#loadPromise;
   }
 
-  // Acquire exclusive access for a multi-step ffmpeg flow (write → exec →
-  // read → cleanup). Other callers wait until fn resolves, so we never
-  // interleave two flows that share filenames on the worker's fs.
-  // While fn is running, #lockDepth > 0, which is what writeFile / exec /
-  // readFile assert to keep callers from accidentally running outside a lock.
+  // Acquire exclusive access for a multi-step ffmpeg flow. fn receives a
+  // session object exposing writeFile / exec / readFile / cleanupFiles.
+  // The session is only valid while fn is awaiting — callers can't stash
+  // it and reuse it later from outside the lock — so there is no way to
+  // hit the underlying ffmpeg worker outside of an active lock.
   withLock(fn) {
     const previous = this.#mutex;
-    const next = previous.then(async () => {
-      this.#lockDepth += 1;
-      try {
-        return await fn();
-      } finally {
-        this.#lockDepth -= 1;
-      }
+    const next = previous.then(() => {
+      const instance = this.#instance;
+      let valid = true;
+      const guard = (method) => {
+        if (!valid) {
+          throw new Error(`ffmpeg session has ended; ${method}() must be called inside the same withLock() callback`);
+        }
+      };
+      const session = {
+        writeFile: (name, data) => { guard("writeFile"); return instance.writeFile(name, data); },
+        exec: (args) => { guard("exec"); return instance.exec(args); },
+        readFile: (name) => { guard("readFile"); return instance.readFile(name); },
+        deleteFile: async (name) => {
+          guard("deleteFile");
+          try { await instance.deleteFile(name); } catch { /* best effort */ }
+        },
+        cleanupFiles: async (names) => {
+          guard("cleanupFiles");
+          for (const name of names) {
+            try { await instance.deleteFile(name); } catch { /* best effort */ }
+          }
+        },
+      };
+      return Promise.resolve(fn(session)).finally(() => {
+        valid = false;
+      });
     });
     this.#mutex = next.catch(() => {});
     return next;
-  }
-
-  #assertLocked(method) {
-    if (this.#lockDepth === 0) {
-      throw new Error(`ffmpegRuntime.${method}() must be called inside withLock()`);
-    }
-  }
-
-  writeFile(name, data) {
-    this.#assertLocked("writeFile");
-    return this.#instance.writeFile(name, data);
-  }
-
-  exec(args) {
-    this.#assertLocked("exec");
-    return this.#instance.exec(args);
-  }
-
-  readFile(name) {
-    this.#assertLocked("readFile");
-    return this.#instance.readFile(name);
-  }
-
-  async deleteFile(name) {
-    this.#assertLocked("deleteFile");
-    try {
-      await this.#instance.deleteFile(name);
-    } catch {
-      // Best effort cleanup.
-    }
-  }
-
-  async cleanupFiles(names) {
-    this.#assertLocked("cleanupFiles");
-    for (const name of names) {
-      try {
-        await this.#instance.deleteFile(name);
-      } catch {
-        // Best effort cleanup.
-      }
-    }
   }
 }
 
@@ -185,10 +162,10 @@ function deriveMixFileNames({ input, intro, outro }) {
   };
 }
 
-async function writeMixInputs({ input, intro, outro }, names) {
-  await ffmpegRuntime.writeFile(names.inputName, await fetchFile(input));
-  await ffmpegRuntime.writeFile(names.introName, await fetchFile(intro.source));
-  await ffmpegRuntime.writeFile(names.outroName, await fetchFile(outro.source));
+async function writeMixInputs(fs, { input, intro, outro }, names) {
+  await fs.writeFile(names.inputName, await fetchFile(input));
+  await fs.writeFile(names.introName, await fetchFile(intro.source));
+  await fs.writeFile(names.outroName, await fetchFile(outro.source));
 }
 
 export function computeMixTimings({
@@ -217,8 +194,8 @@ export function computeMixTimings({
   };
 }
 
-async function executeMixFilter({ names, filter, totalDurationSec, mp3Bitrate }) {
-  await ffmpegRuntime.exec([
+async function executeMixFilter(fs, { names, filter, totalDurationSec, mp3Bitrate }) {
+  await fs.exec([
     "-i", names.inputName,
     "-i", names.introName,
     "-i", names.outroName,
@@ -231,8 +208,8 @@ async function executeMixFilter({ names, filter, totalDurationSec, mp3Bitrate })
   ]);
 }
 
-async function readMixOutput(outputName) {
-  const data = await ffmpegRuntime.readFile(outputName);
+async function readMixOutput(fs, outputName) {
+  const data = await fs.readFile(outputName);
   return new Blob([data.buffer], { type: "audio/mpeg" });
 }
 
@@ -271,11 +248,11 @@ export async function renderMixPreview(spec, kind) {
   const timings = computeMixTimings({ ...spec, speechDuration });
   const trimmedDur = timings.safeTalkTrimEnd - timings.safeTalkTrimStart;
 
-  return ffmpegRuntime.withLock(async () => {
+  return ffmpegRuntime.withLock(async (fs) => {
     try {
       onStatus?.("ファイルを書き込み中...");
-      await ffmpegRuntime.writeFile(names.inputName, await fetchFile(spec.input));
-      await ffmpegRuntime.writeFile(bgmName, await fetchFile(bgmSource));
+      await fs.writeFile(names.inputName, await fetchFile(spec.input));
+      await fs.writeFile(bgmName, await fetchFile(bgmSource));
 
     let filter;
     if (kind === "opening") {
@@ -351,21 +328,21 @@ export async function renderMixPreview(spec, kind) {
       });
     }
 
-    onStatus?.("プレビューを生成中...");
-    await ffmpegRuntime.exec([
-      "-i", names.inputName,
-      "-i", bgmName,
-      "-filter_complex", filter,
-      "-map", "[preview]",
-      "-c:a", "libmp3lame",
-      "-b:a", spec.mp3Bitrate,
-      outputName,
-    ]);
+      onStatus?.("プレビューを生成中...");
+      await fs.exec([
+        "-i", names.inputName,
+        "-i", bgmName,
+        "-filter_complex", filter,
+        "-map", "[preview]",
+        "-c:a", "libmp3lame",
+        "-b:a", spec.mp3Bitrate,
+        outputName,
+      ]);
 
-      const blob = await readMixOutput(outputName);
+      const blob = await readMixOutput(fs, outputName);
       return { blob, durationSec: segmentDurationSec };
     } finally {
-      await ffmpegRuntime.cleanupFiles([names.inputName, bgmName, outputName]);
+      await fs.cleanupFiles([names.inputName, bgmName, outputName]);
     }
   });
 }
@@ -405,13 +382,13 @@ export async function runMix(spec) {
     talkTrimEnd: timings.safeTalkTrimEnd,
   });
 
-  return ffmpegRuntime.withLock(async () => {
+  return ffmpegRuntime.withLock(async (fs) => {
     try {
       onStatus?.("ファイルを書き込み中...");
-      await writeMixInputs(spec, names);
+      await writeMixInputs(fs, spec, names);
 
       onStatus?.("音声処理中...");
-      await executeMixFilter({
+      await executeMixFilter(fs, {
         names,
         filter,
         totalDurationSec: timings.totalDurationSec,
@@ -419,10 +396,10 @@ export async function runMix(spec) {
       });
 
       onStatus?.("書き出し中...");
-      const blob = await readMixOutput(names.outputName);
+      const blob = await readMixOutput(fs, names.outputName);
       return { blob, filename: names.outputName };
     } finally {
-      await ffmpegRuntime.cleanupFiles([names.inputName, names.introName, names.outroName, names.outputName]);
+      await fs.cleanupFiles([names.inputName, names.introName, names.outroName, names.outputName]);
     }
   });
 }
