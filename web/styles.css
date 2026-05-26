@@ -632,8 +632,8 @@ h1 {
 }
 
 .c--media-section .l--volume-inline input[type="number"] {
-  width: 72px;
-  max-width: 72px;
+  width: 64px;
+  max-width: 64px;
   text-align: right;
 }
 
@@ -810,7 +810,7 @@ h1 {
 .c--setting-card {
   display: flex;
   flex-direction: column;
-  width: min(100%, 360px);
+  width: min(100%, 400px);
   overflow: hidden;
   border: 1px solid rgba(var(--ink-rgb), 0.12);
   border-radius: 12px;
@@ -894,22 +894,38 @@ h1 {
 }
 
 .l--setting-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 336px));
-  gap: 12px;
-  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.c--range-separator {
+  flex: 1;
+  align-self: flex-end;
+  padding-bottom: 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+  user-select: none;
 }
 
 .l--inline-setting {
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.l--inline-setting-controls {
+  display: flex;
   align-items: center;
-  gap: 8px 4px;
+  gap: 4px;
 }
 
 .c--setting-field-label {
-  flex-basis: 100%;
   margin: 0;
   font-size: 0.82rem;
   font-weight: 700;
@@ -931,14 +947,6 @@ h1 {
   color: var(--ink);
 }
 
-.c--setting-card > input,
-.c--setting-card > select,
-.l--inline-setting > input,
-.l--inline-setting > select {
-  width: min(100%, 192px);
-  max-width: 192px;
-}
-
 .c--setting-card input[type="number"] {
   width: min(100%, 120px);
   max-width: 120px;
@@ -946,9 +954,10 @@ h1 {
 
 .c--radio-group {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
 
 .c--radio {
@@ -984,10 +993,68 @@ h1 {
 }
 
 .l--inline-setting input[type="number"] {
-  width: 100px;
-  max-width: 100px;
+  width: 64px;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.l--stepper {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.l--stepper > input[type="number"] {
+  border-radius: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.l--stepper > input[type="number"]:focus {
+  z-index: 2;
+}
+
+.c--stepper-button {
+  width: 28px;
+  padding: 0;
+  border: 1px solid rgba(var(--ink-rgb), 0.28);
+  background: rgba(var(--white-rgb), 0.96);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.c--stepper-button:first-child {
+  border-radius: 10px 0 0 10px;
+  border-right: 0;
+}
+
+.c--stepper-button:last-child {
+  border-radius: 0 10px 10px 0;
+  border-left: 0;
+}
+
+.c--stepper-button:hover {
+  background: var(--surface-cream);
+  border-color: rgba(var(--accent-deep-rgb), 0.42);
 }
 
 

@@ -335,7 +335,7 @@ export function drawWaveform(controller) {
 
   if (duration > 0) {
     const progressX = Math.max(0, Math.min(width, (currentTime / duration) * width));
-    ctx.fillStyle = "rgba(28, 27, 25, 0.85)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
     ctx.fillRect(progressX, 0, 2, height);
   }
 

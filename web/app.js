@@ -771,6 +771,47 @@ async function runExclusiveAction(operation, failStatus) {
   }
 }
 
+function attachStepperButtons() {
+  for (const input of document.querySelectorAll('input[type="number"]')) {
+    if (input.dataset.stepperBound === "true") {
+      continue;
+    }
+    input.dataset.stepperBound = "true";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "l--stepper";
+    input.parentNode.insertBefore(wrapper, input);
+
+    const makeButton = (label, aria, onClick) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "c--stepper-button";
+      b.tabIndex = -1; // input itself handles keyboard nudges via Up/Down
+      b.setAttribute("aria-label", aria);
+      b.textContent = label;
+      b.addEventListener("click", onClick);
+      return b;
+    };
+
+    const minus = makeButton("−", "値を減らす", () => {
+      input.stepDown();
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const plus = makeButton("+", "値を増やす", () => {
+      input.stepUp();
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    wrapper.appendChild(minus);
+    wrapper.appendChild(input);
+    wrapper.appendChild(plus);
+  }
+}
+
+attachStepperButtons();
+
 processButton.addEventListener("click", () => runExclusiveAction(processAudio, "処理失敗"));
 previewOpeningButton.addEventListener("click", () => runExclusiveAction(() => processMixPreview("opening"), "プレビュー失敗"));
 previewEndingButton.addEventListener("click", () => runExclusiveAction(() => processMixPreview("ending"), "プレビュー失敗"));

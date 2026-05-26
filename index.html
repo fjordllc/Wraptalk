@@ -91,13 +91,18 @@
                   <div class="l--setting-columns">
                     <div class="l--inline-setting">
                       <p class="c--setting-field-label">開始位置</p>
-                      <input id="talkTrimStart" type="number" min="0" step="0.1" value="0" />
-                      <button id="talkTrimStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      <div class="l--inline-setting-controls">
+                        <input id="talkTrimStart" type="number" min="0" step="0.1" value="0" />
+                        <button id="talkTrimStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      </div>
                     </div>
+                    <span class="c--range-separator" aria-hidden="true">〜</span>
                     <div class="l--inline-setting">
                       <p class="c--setting-field-label">終了位置</p>
-                      <input id="talkTrimEnd" type="number" min="0" step="0.1" value="0" />
-                      <button id="talkTrimEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      <div class="l--inline-setting-controls">
+                        <input id="talkTrimEnd" type="number" min="0" step="0.1" value="0" />
+                        <button id="talkTrimEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      </div>
                     </div>
                   </div>
                   <p><small>`終了位置` を `0` のままにすると、末尾まで使用します</small></p>
@@ -171,8 +176,10 @@
                 </header>
                 <div class="c--setting-card-body">
                   <div class="l--inline-setting">
-                    <input id="introPad" type="number" min="0" step="0.1" value="10.0" />
-                    <button id="introPadSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    <div class="l--inline-setting-controls">
+                      <input id="introPad" type="number" min="0" step="0.1" value="10.0" />
+                      <button id="introPadSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
                   </div>
                   <p><small>例: `10.0` なら、イントロ開始から10秒の地点でトークが始まります</small></p>
                 </div>
@@ -185,13 +192,18 @@
                   <div class="l--setting-columns">
                     <div class="l--inline-setting">
                       <p class="c--setting-field-label">開始位置</p>
-                      <input id="introFadeStart" type="number" min="0" step="0.1" value="26.0" />
-                      <button id="introFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      <div class="l--inline-setting-controls">
+                        <input id="introFadeStart" type="number" min="0" step="0.1" value="26.0" />
+                        <button id="introFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      </div>
                     </div>
+                    <span class="c--range-separator" aria-hidden="true">〜</span>
                     <div class="l--inline-setting">
                       <p class="c--setting-field-label">終了位置</p>
-                      <input id="introFadeEnd" type="number" min="0" step="0.1" value="29.0" />
-                      <button id="introFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      <div class="l--inline-setting-controls">
+                        <input id="introFadeEnd" type="number" min="0" step="0.1" value="29.0" />
+                        <button id="introFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -264,8 +276,10 @@
                 </header>
                 <div class="c--setting-card-body">
                   <div class="l--inline-setting">
-                    <input id="outroOverlap" type="number" min="0" step="0.1" value="98.0" />
-                    <button id="outroOverlapSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    <div class="l--inline-setting-controls">
+                      <input id="outroOverlap" type="number" min="0" step="0.1" value="98.0" />
+                      <button id="outroOverlapSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                    </div>
                   </div>
                   <p><small>例: `8.0` なら、アウトロ開始から8秒の地点がトークの終わりに揃います</small></p>
                 </div>
@@ -278,13 +292,18 @@
                   <div class="l--setting-columns">
                     <div class="l--inline-setting">
                       <p class="c--setting-field-label">開始位置</p>
-                      <input id="outroFadeStart" type="number" min="0" step="0.1" value="114.0" />
-                      <button id="outroFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      <div class="l--inline-setting-controls">
+                        <input id="outroFadeStart" type="number" min="0" step="0.1" value="114.0" />
+                        <button id="outroFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      </div>
                     </div>
+                    <span class="c--range-separator" aria-hidden="true">〜</span>
                     <div class="l--inline-setting">
                       <p class="c--setting-field-label">終了位置</p>
-                      <input id="outroFadeEnd" type="number" min="0" step="0.1" value="118.0" />
-                      <button id="outroFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      <div class="l--inline-setting-controls">
+                        <input id="outroFadeEnd" type="number" min="0" step="0.1" value="118.0" />
+                        <button id="outroFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
+                      </div>
                     </div>
                   </div>
                 </div>
