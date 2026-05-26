@@ -248,85 +248,13 @@ export async function renderMixPreview(spec, kind) {
   const timings = computeMixTimings({ ...spec, speechDuration });
   const trimmedDur = timings.safeTalkTrimEnd - timings.safeTalkTrimStart;
 
+  const filter = buildPreviewFilter(kind, spec, timings, trimmedDur, segmentDurationSec);
+
   return ffmpegRuntime.withLock(async (fs) => {
     try {
       onStatus?.("ファイルを書き込み中...");
       await fs.writeFile(names.inputName, await fetchFile(spec.input));
       await fs.writeFile(bgmName, await fetchFile(bgmSource));
-
-    let filter;
-    if (kind === "opening") {
-      // Talk needed: from start of trimmed talk for up to (segmentDur - introPad) seconds
-      const headTalkLen = Math.max(0.1, segmentDurationSec - spec.introPad);
-      const talkEnd = timings.safeTalkTrimStart + Math.min(trimmedDur, headTalkLen);
-      filter = buildOpeningPreviewFilter({
-        speechDelayMs: timings.speechDelayMs,
-        introPad: spec.introPad,
-        voiceLufs: spec.voiceLufs,
-        introMusicVolume: spec.introMusicVolume,
-        introDuckLevel: spec.introDuckLevel,
-        introFadeStart: spec.introFadeStart,
-        introFadeEnd: spec.introFadeEnd,
-        talkTrimStart: timings.safeTalkTrimStart,
-        talkTrimEnd: Math.max(timings.safeTalkTrimStart + 0.1, talkEnd),
-        segmentDurationSec,
-      });
-    } else {
-      // ending — clip the mix window to [windowStart, totalDurationSec]
-      const totalDur = timings.totalDurationSec;
-      const windowStart = Math.max(0, totalDur - segmentDurationSec);
-      const talkPlayStart = spec.introPad;
-      const talkPlayEnd = spec.introPad + trimmedDur;
-      const clippedTalkStart = Math.max(talkPlayStart, windowStart);
-      const clippedTalkEnd = Math.min(talkPlayEnd, totalDur);
-
-      const adjustedTalkTrimStartRaw = timings.safeTalkTrimStart + Math.max(0, clippedTalkStart - talkPlayStart);
-      const adjustedTalkTrimEndRaw = timings.safeTalkTrimStart + Math.max(0, clippedTalkEnd - talkPlayStart);
-      const adjustedTalkTrimStart = Math.min(adjustedTalkTrimStartRaw, timings.safeTalkTrimEnd - 0.1);
-      const adjustedTalkTrimEnd = Math.max(adjustedTalkTrimStart + 0.1, adjustedTalkTrimEndRaw);
-
-      const speechDelayMs = Math.round(Math.max(0, clippedTalkStart - windowStart) * 1000);
-      // Outro: if it started before window, atrim source from the right offset
-      const outroStartInMix = timings.outroStartMs / 1000;
-      const outroStartInPreview = outroStartInMix - windowStart;
-      let outroDelayMs;
-      let outroSourceStart;
-      let outroAdjustedFadeStart;
-      let outroAdjustedFadeEnd;
-      if (outroStartInPreview >= 0) {
-        outroDelayMs = Math.round(outroStartInPreview * 1000);
-        outroSourceStart = 0;
-        outroAdjustedFadeStart = spec.outroFadeStart;
-        outroAdjustedFadeEnd = spec.outroFadeEnd;
-      } else {
-        const outroSkipSec = -outroStartInPreview;
-        outroDelayMs = 0;
-        outroSourceStart = outroSkipSec;
-        outroAdjustedFadeStart = Math.max(0, spec.outroFadeStart - outroSkipSec);
-        outroAdjustedFadeEnd = Math.max(0.1, spec.outroFadeEnd - outroSkipSec);
-      }
-
-      // duckEnd: time (in outro source post-atrim timeline) when talk ends.
-      // In source timeline, talk ends at safeOutroOverlap. After atrim by outroSourceStart, subtract.
-      // Then add outroDelayMs/1000 because the volume filter is BEFORE adelay.
-      // Actually `t` in the volume expression is the input frame time (post-atrim, pre-adelay) = source post-atrim time.
-      const outroDuckEnd = Math.max(0, timings.safeOutroOverlap - outroSourceStart);
-
-      filter = buildEndingPreviewFilter({
-        speechDelayMs,
-        outroDelayMs,
-        outroSourceStart,
-        outroDuckEnd,
-        voiceLufs: spec.voiceLufs,
-        outroMusicVolume: spec.outroMusicVolume,
-        outroDuckLevel: spec.outroDuckLevel,
-        outroFadeStart: outroAdjustedFadeStart,
-        outroFadeEnd: outroAdjustedFadeEnd,
-        talkTrimStart: adjustedTalkTrimStart,
-        talkTrimEnd: adjustedTalkTrimEnd,
-        segmentDurationSec,
-      });
-    }
 
       onStatus?.("プレビューを生成中...");
       await fs.exec([
@@ -344,6 +272,80 @@ export async function renderMixPreview(spec, kind) {
     } finally {
       await fs.cleanupFiles([names.inputName, bgmName, outputName]);
     }
+  });
+}
+
+function buildPreviewFilter(kind, spec, timings, trimmedDur, segmentDurationSec) {
+  if (kind === "opening") {
+    // Talk needed: from start of trimmed talk for up to (segmentDur - introPad) seconds
+    const headTalkLen = Math.max(0.1, segmentDurationSec - spec.introPad);
+    const talkEnd = timings.safeTalkTrimStart + Math.min(trimmedDur, headTalkLen);
+    return buildOpeningPreviewFilter({
+      speechDelayMs: timings.speechDelayMs,
+      introPad: spec.introPad,
+      voiceLufs: spec.voiceLufs,
+      introMusicVolume: spec.introMusicVolume,
+      introDuckLevel: spec.introDuckLevel,
+      introFadeStart: spec.introFadeStart,
+      introFadeEnd: spec.introFadeEnd,
+      talkTrimStart: timings.safeTalkTrimStart,
+      talkTrimEnd: Math.max(timings.safeTalkTrimStart + 0.1, talkEnd),
+      segmentDurationSec,
+    });
+  }
+
+  // ending — clip the mix window to [windowStart, totalDurationSec]
+  const totalDur = timings.totalDurationSec;
+  const windowStart = Math.max(0, totalDur - segmentDurationSec);
+  const talkPlayStart = spec.introPad;
+  const talkPlayEnd = spec.introPad + trimmedDur;
+  const clippedTalkStart = Math.max(talkPlayStart, windowStart);
+  const clippedTalkEnd = Math.min(talkPlayEnd, totalDur);
+
+  const adjustedTalkTrimStartRaw = timings.safeTalkTrimStart + Math.max(0, clippedTalkStart - talkPlayStart);
+  const adjustedTalkTrimEndRaw = timings.safeTalkTrimStart + Math.max(0, clippedTalkEnd - talkPlayStart);
+  const adjustedTalkTrimStart = Math.min(adjustedTalkTrimStartRaw, timings.safeTalkTrimEnd - 0.1);
+  const adjustedTalkTrimEnd = Math.max(adjustedTalkTrimStart + 0.1, adjustedTalkTrimEndRaw);
+
+  const speechDelayMs = Math.round(Math.max(0, clippedTalkStart - windowStart) * 1000);
+  // Outro: if it started before window, atrim source from the right offset
+  const outroStartInMix = timings.outroStartMs / 1000;
+  const outroStartInPreview = outroStartInMix - windowStart;
+  let outroDelayMs;
+  let outroSourceStart;
+  let outroAdjustedFadeStart;
+  let outroAdjustedFadeEnd;
+  if (outroStartInPreview >= 0) {
+    outroDelayMs = Math.round(outroStartInPreview * 1000);
+    outroSourceStart = 0;
+    outroAdjustedFadeStart = spec.outroFadeStart;
+    outroAdjustedFadeEnd = spec.outroFadeEnd;
+  } else {
+    const outroSkipSec = -outroStartInPreview;
+    outroDelayMs = 0;
+    outroSourceStart = outroSkipSec;
+    outroAdjustedFadeStart = Math.max(0, spec.outroFadeStart - outroSkipSec);
+    outroAdjustedFadeEnd = Math.max(0.1, spec.outroFadeEnd - outroSkipSec);
+  }
+
+  // duckEnd: time (in outro source post-atrim timeline) when talk ends.
+  // In source timeline, talk ends at safeOutroOverlap. After atrim by outroSourceStart, subtract.
+  // `t` in the volume expression is the input frame time (post-atrim, pre-adelay) = source post-atrim time.
+  const outroDuckEnd = Math.max(0, timings.safeOutroOverlap - outroSourceStart);
+
+  return buildEndingPreviewFilter({
+    speechDelayMs,
+    outroDelayMs,
+    outroSourceStart,
+    outroDuckEnd,
+    voiceLufs: spec.voiceLufs,
+    outroMusicVolume: spec.outroMusicVolume,
+    outroDuckLevel: spec.outroDuckLevel,
+    outroFadeStart: outroAdjustedFadeStart,
+    outroFadeEnd: outroAdjustedFadeEnd,
+    talkTrimStart: adjustedTalkTrimStart,
+    talkTrimEnd: adjustedTalkTrimEnd,
+    segmentDurationSec,
   });
 }
 
