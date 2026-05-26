@@ -84,6 +84,7 @@ export const outroPreviewButton = $("outroPreviewButton");
 export const inputJumpStartButton = $("inputJumpStartButton");
 export const inputJumpTrimStartButton = $("inputJumpTrimStartButton");
 export const inputJumpTrimEndButton = $("inputJumpTrimEndButton");
+export const inputJumpEndButton = $("inputJumpEndButton");
 export const introJumpStartButton = $("introJumpStartButton");
 export const introJumpTargetButton = $("introJumpTargetButton");
 export const introJumpFadeStartButton = $("introJumpFadeStartButton");

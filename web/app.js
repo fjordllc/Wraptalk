@@ -42,6 +42,7 @@ import {
   mp3BitrateInfoModalClose,
   inputFile,
   inputMeta,
+  inputJumpEndButton,
   inputJumpStartButton,
   inputJumpTrimEndButton,
   inputJumpTrimStartButton,
@@ -502,6 +503,7 @@ const inputWaveformController = new PreviewController({
       { button: inputJumpStartButton, target: 0 },
       { button: inputJumpTrimStartButton, sourceInput: talkTrimStartInput },
       { button: inputJumpTrimEndButton, sourceInput: talkTrimEndInput },
+      { button: inputJumpEndButton, target: "end" },
     ],
   },
   waveform: {

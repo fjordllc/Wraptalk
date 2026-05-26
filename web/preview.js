@@ -127,6 +127,7 @@ export class PreviewController {
       button: jump.button ?? null,
       sourceInput: jump.sourceInput ?? null,
       fixedTarget: typeof jump.target === "number" ? jump.target : null,
+      endTarget: jump.target === "end",
     }));
 
     this.canvas = waveform.canvas ?? null;
@@ -212,6 +213,9 @@ export class PreviewController {
   }
 
   #jumpTarget(jump) {
+    if (jump.endTarget) {
+      return this.audio?.duration || this.duration || 0;
+    }
     if (jump.fixedTarget !== null) {
       return jump.fixedTarget;
     }
@@ -223,7 +227,7 @@ export class PreviewController {
       if (!jump.button) {
         continue;
       }
-      if (jump.fixedTarget !== null) {
+      if (jump.fixedTarget !== null || jump.endTarget) {
         jump.button.disabled = !available;
       } else {
         const target = this.#jumpTarget(jump);
@@ -232,13 +236,14 @@ export class PreviewController {
     }
   }
 
-  async #seekTo(seconds) {
+  async #seekToJump(jump) {
     const ready = await this.ensureReady();
     if (!ready || !this.audio) {
       return;
     }
+    const target = this.#jumpTarget(jump);
     const duration = this.audio.duration || this.duration || 0;
-    this.audio.currentTime = Math.max(0, Math.min(duration, seconds));
+    this.audio.currentTime = Math.max(0, Math.min(duration, target));
     this.updateUI();
   }
 
@@ -510,7 +515,7 @@ export class PreviewController {
     const sourceInputs = new Set();
     for (const jump of this.jumps) {
       jump.button?.addEventListener("click", () => {
-        this.#seekTo(this.#jumpTarget(jump));
+        this.#seekToJump(jump);
       });
       if (jump.sourceInput) {
         sourceInputs.add(jump.sourceInput);
