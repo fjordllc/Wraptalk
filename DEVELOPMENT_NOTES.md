@@ -17,14 +17,14 @@
 
 | File | Lines | 役割 |
 |------|-------|------|
-| `app.js` | 817 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群、modal focus trap、localStorage 永続化、D&D、ステッパー注入 |
-| `preview.js` | 692 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。jumps[] config で任意位置へジャンプ、ハンドル focus highlight 連動 |
-| `waveform.js` | 513 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替、時刻軸、focus halo。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
-| `mix.js` | 438 | `FfmpegRuntime` クラス (load promise + exec queue で直列化)、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別) |
+| `app.js` | 916 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群、modal focus trap、localStorage 永続化、設定リセット、D&D (accept 検証 + 拡張子 fallback)、ステッパー注入、入力 clampRange |
+| `preview.js` | 686 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。jumps[] config で任意位置へジャンプ、ハンドル focus highlight 連動、`prepareToken` で per-controller の race 対策 |
+| `waveform.js` | 513 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替、時刻軸 (cache 付き)、focus halo。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
+| `mix.js` | 457 | `FfmpegRuntime` クラス (load promise + `withLock(fn)` で session を渡す排他制御)、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別)、`buildPreviewFilter` |
 | `filter.js` | 205 | `buildFilter` / `buildOpeningPreviewFilter` / `buildEndingPreviewFilter` + envelope ヘルパー。Node からテスト可能 |
-| `dom.js` | 128 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
+| `dom.js` | 132 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
 | `utils.js` | 98 | 純粋関数 + JSDoc 型注釈付き (parse 系 / clamp / clampRange / formatTime / extFromName / isNetworkLikeError) |
-| `waveform-loader.js` | 84 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード、try/finally cleanup) |
+| `waveform-loader.js` | 86 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード、`withLock` 内で atomic 化) |
 
 すべての JS ファイル冒頭に `// @ts-check` を付けて、JSDoc 型注釈で TS-aware エディタ上で型補完 + エラー検知が効くようになっている。
 
@@ -201,11 +201,11 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 
 ## UI 構成
 
-- **ヒーロー**: タイトル + 概要 + `<details>`「動作環境について」（折りたたみで初期表示は省スペース）
+- **ヒーロー**: タイトル + 概要 + 「ⓘ 動作環境について」ボタン（クリックでモーダル表示。ページレイアウトを動かさない）
 - **3つの media-section**（トーク / イントロ / アウトロ）: 各 section に波形 + プレビュー/ズーム ツールバー + 設定カード群
 - **音質 section（軽量）**: 見出しを `1.4rem / weight 700` に控えめにして他セクションと階層差を出している
 - **ファイルメタ表示**: 各 section の `<p class="c--media-meta">` に、選択中のファイル名（`xxx を使用中`）またはデフォルト音源の案内を表示
-- **設定完了ボタン**: 主画面の `.l--actions--sticky` で `position: sticky` 配置、画面下に常時アクセス可能
+- **設定完了 / 初期値に戻すボタン**: 主画面の `.l--actions--sticky` で `position: sticky` 配置、画面下に常時アクセス可能。初期値ボタンは secondary スタイルで confirm dialog を挟む
 - **モーダル (`.c--modal`)**: 設定完了クリックで開く。プレビュー/書き出しボタン + mix preview audio + status block (meter + log) を内包。閉じる手段: × / 背景クリック / Esc
 - **色チップ**: 設定カードの見出し横の swatch が、波形上のハンドル色とリンク
   - 🟢 緑 (rgb 34,197,94) = フェードアウト
@@ -284,6 +284,19 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 - 2026-05: FfmpegRuntime を直列化。`#loadPromise` で並行 load を共有、`#queue` で write/exec/read を順次実行 (波形 decode と export の競合を防止)
 - 2026-05: renderTimeAxis をキャッシュ (duration/width/interval キー)、timeupdate での DOM 再構築をスキップ
 - 2026-05: podcast_auto.sh の冒頭にレガシー注記を追加 (ブラウザ版とは音声処理が違う旨)
+- 2026-05: ObjectURL revoke を click() 直後即時 → 1秒遅延に (ブラウザによってはダウンロード開始前の revoke で失敗するため)
+- 2026-05: D&D に accept 検証 (`isAcceptableFile`) を追加。`audio/*` / `video/*` は file.type が空のとき拡張子 fallback (AUDIO_EXTENSIONS / VIDEO_EXTENSIONS) で受け付け
+- 2026-05: D&D 不正ファイル時のエラーをカード meta に `.is--error` で表示 (status block 非表示時にもユーザーに気付かせる)
+- 2026-05: dragleave 判定を `event.target === card` → `event.relatedTarget` ベースに (子要素経由でカード外へ抜けるケースの取りこぼし対策)
+- 2026-05: build script から `dist/web/*.test.js` を除外 (公開成果物に test が混入しないように)
+- 2026-05: localStorage の mp3Bitrate 復元を querySelector への value 埋め込み → ループ + `.value` 比較に。改ざんされた値で SyntaxError にならないように
+- 2026-05: 「初期値に戻す」ボタンを 設定完了 の右に追加。`persistedInputs` 全てを `defaultValue` に戻し、ラジオを `defaultChecked` に、localStorage クリア。confirm dialog で誤操作防止
+- 2026-05: FfmpegRuntime を session-based API に変更。`withLock(fn)` が `fn(session)` を呼ぶ形に。session には writeFile/exec/readFile/cleanupFiles が含まれ、callback 終了時に invalidate されて外部から呼べない
+- 2026-05: `decodeWaveformWithFFmpeg` / `runMix` / `renderMixPreview` を withLock 内で atomic に。固定ファイル名 (`waveform_input.*` 等) を共有するため、write/exec の interleave を mutex で防止
+- 2026-05: `renderMixPreview` のフィルタ生成ロジックを `buildPreviewFilter()` 純関数に分離。withLock 内のインデント崩れも修正
+- 2026-05: preview の prepare token を **per-controller** に。`previewSession` シングルトンの global token を撤去し、`PreviewController.prepareToken` に。別コントローラのファイル変更で他コントローラの prepare がキャンセルされる問題を解消
+- 2026-05: prepare の abort sentinel を `ABORT_ERROR_MESSAGE` / `isAbortError()` で共通化。seek / setButton ハンドラも `ensureReady()` 経由に統一して abort ログ漏れを防止
+- 2026-05: 「動作環境について」を `<details>` accordion から **モーダル** に変更。infoModalEntries に組み込み Esc / focus trap も活用。内容を 5 セクション (ブラウザ内処理 / 推奨ブラウザ / ファイルサイズ / 初回読み込み / データ保存) に拡充
 
 ## Open Questions
 
