@@ -1,6 +1,6 @@
 // @ts-check
 
-import { parseNumberInput } from "./utils.js";
+import { formatTime, parseNumberInput } from "./utils.js";
 
 /**
  * @typedef {Object} WaveformController
@@ -99,6 +99,49 @@ export function setWaveformZoom(controller, zoom) {
 }
 
 const MAX_CANVAS_WIDTH = 30000;
+
+const TICK_INTERVAL_CHOICES = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+
+function pickTickInterval(secondsPerPixel) {
+  // Aim for one label every ~100 px to balance density and readability.
+  const target = 100 * secondsPerPixel;
+  for (const choice of TICK_INTERVAL_CHOICES) {
+    if (choice >= target) {
+      return choice;
+    }
+  }
+  return TICK_INTERVAL_CHOICES[TICK_INTERVAL_CHOICES.length - 1];
+}
+
+function renderTimeAxis(controller, duration) {
+  const scroller = controller.canvas?.closest(".js--waveform-scroll");
+  if (!scroller) {
+    return;
+  }
+  let axis = scroller.querySelector(".js--waveform-time-axis");
+  if (!axis) {
+    axis = document.createElement("div");
+    axis.className = "c--waveform-time-axis js--waveform-time-axis";
+    axis.setAttribute("aria-hidden", "true");
+    scroller.appendChild(axis);
+  }
+  axis.replaceChildren();
+  const width = parseFloat(controller.canvas.style.width || `${controller.canvas.width}`) || controller.canvas.width;
+  axis.style.width = `${width}px`;
+  if (!duration || duration <= 0) {
+    return;
+  }
+  const secondsPerPixel = duration / width;
+  const interval = pickTickInterval(secondsPerPixel);
+  for (let t = 0; t <= duration; t += interval) {
+    const x = (t / duration) * width;
+    const tick = document.createElement("span");
+    tick.className = "c--waveform-tick";
+    tick.style.left = `${x}px`;
+    tick.textContent = formatTime(t);
+    axis.appendChild(tick);
+  }
+}
 
 export function resizeWaveformCanvas(controller) {
   if (!controller.canvas) {
@@ -263,6 +306,8 @@ export function drawWaveform(controller) {
     ctx.fillStyle = "rgba(28, 27, 25, 0.85)";
     ctx.fillRect(progressX, 0, 2, height);
   }
+
+  renderTimeAxis(controller, duration);
 }
 
 export function setWaveformStatus(controller, message = "", visible = false) {
