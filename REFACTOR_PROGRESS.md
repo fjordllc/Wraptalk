@@ -1,8 +1,8 @@
 # Refactor Progress: web/app.js の分割
 
-> このファイルは 2026-05 セッションのリファクタ作業ログです。**現在のコード状態は [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) を参照してください**。
+> **このファイルは凍結アーカイブです。** 2026-05 セッションで web/app.js (当時 1516 行) を 7 ファイルに分割した時の作業ログを保存しています。今後新しいリファクタを記録する場合は本ファイルではなく、git log と [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) の Recently Done に集約してください。
 >
-> 当時のフェーズごとの差分・設計判断・線量の推移をスナップショットとして残しています。
+> 現在のコード状態は [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) を参照してください。当時のフェーズごとの差分・設計判断・線量の推移はスナップショットとしてここに残しています。
 
 開始時点: `web/app.js` 1516行 / `web/mix.js` 33行
 

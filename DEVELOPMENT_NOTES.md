@@ -308,11 +308,44 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 - 2026-05: prepare の abort sentinel を `ABORT_ERROR_MESSAGE` / `isAbortError()` で共通化。seek / setButton ハンドラも `ensureReady()` 経由に統一して abort ログ漏れを防止
 - 2026-05: 「動作環境について」を `<details>` accordion から **モーダル** に変更。infoModalEntries に組み込み Esc / focus trap も活用。内容を 5 セクション (ブラウザ内処理 / 推奨ブラウザ / ファイルサイズ / 初回読み込み / データ保存) に拡充
 
+## Architectural Decisions
+
+### `FfmpegRuntime.withLock(fn)` で session を渡す形を採った理由
+ffmpeg.wasm のインスタンスは内部で 1 つの worker / fs を共有しているので、複数の caller が `writeFile` / `exec` / `readFile` を並行に呼ぶと、互いのファイル (`input.mp4` / `waveform_input.*` など固定名) を上書きしてしまう。`runMix` 中に波形 decode が走るとミックスが壊れる、というのは過去に実際に踏んだ事故。
+
+対策として `withLock(fn)` で mutex を持ち、fn には短命の `session` オブジェクトを渡す:
+- mutex により complete な write→exec→read→cleanup の流れが atomic に
+- session は `fn` 終了時に `__invalidate()` され、外部に持ち出して後から使うルートを塞ぐ
+- `runtime.writeFile()` 等の public API は無くした (= 呼び出すには withLock を経由するしかない)
+
+将来「withLock 邪魔だから素の `instance.exec` を直接叩こう」と外したくなる場合は、必ず固定ファイル名の race を再現させてから判断すること。
+
+### AudioContext の遅延作成と AutoplayPolicy
+`waveform-loader.js` の `getAudioContext()` は最初の呼び出しで `new AudioContext()` を生成し、以降はシングルトンを使い回す。ブラウザによっては user gesture 前の AudioContext は `suspended` 状態で開始されるが、`decodeAudioData` は suspended でも動作するので現状の波形解析パスは問題なし。
+
+将来 `audioContext.resume()` を必要とする処理（例: 試聴のリアルタイム DSP）を加える場合は、user gesture チェーン内で resume を呼ぶ必要がある。
+
 ## Open Questions
 
 - ミックス済みプレビューを足す場合の設計:
   - 低品質クイックレンダ vs 本番と同一のフルレンダ（書き出し兼用キャッシュ）
 - ブラウザ版を本体に据えるか、シェル版を長尺の常用フォールバックとして残し続けるか
+
+## シェル版 (podcast_auto.sh / Wraptalk.app) のメンテナンスポリシー
+
+- **音声処理はブラウザ版と意図的に違う** (旧 sidechain compressor 構成)。同期する計画はない
+- 永久 **legacy / freeze** 扱い。新機能や音声処理の改善は ブラウザ版だけに入れる
+- バグ報告が来た場合のみ ad-hoc に直す。アクティブなメンテナンスはしない
+- `Wraptalk.app/` は Automator ベース、`Contents/document.wflow` の Run Shell Script アクションから `podcast_auto.sh` を呼ぶ構造（中身を編集する必要が出たら Automator.app で開く）
+
+## ドキュメント間の住み分け
+
+- **README.md**: 利用者向け。何ができる / どう使う / どう動かす / ライセンス
+- **DEVELOPMENT_NOTES.md** (本ファイル): 開発者向け。常に **最新の設計スナップショット**。コード変更時はここを更新
+- **REFACTOR_PROGRESS.md**: 2026-05 の app.js 分割リファクタの作業ログ。**今後の更新は行わない**（凍結アーカイブ。新しいリファクタは git log + DEVELOPMENT_NOTES の Recently Done に集約）
+- **CODE_REVIEW.md**: 外部レビューと対応状況。レビューが来たら checkbox 形式で追記
+
+「動作環境について」モーダル (`index.html`) と README の「前提」セクションは内容が重複しがち。**ユーザー向け一次情報はモーダル**、README からはモーダルを参照する形に揃える方が乖離が起きにくい (随時対応)。
 
 ## 起動 / 開発の早見表
 
