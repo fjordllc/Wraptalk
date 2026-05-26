@@ -164,6 +164,7 @@ export class PreviewController {
     this.duration = 0;
     this.zoomLevel = MIN_WAVEFORM_ZOOM;
     this.waveformToken = 0;
+    this.focusedHandle = null;
   }
 
   applyVolume() {
@@ -524,6 +525,29 @@ export class PreviewController {
     for (const input of sourceInputs) {
       input.addEventListener("input", () => {
         this.#refreshJumpButtons(!this.button?.disabled);
+      });
+    }
+
+    const handleInputMap = [
+      [this.trimStartInput, "trimStart"],
+      [this.trimEndInput, "trimEnd"],
+      [this.targetInput, "target"],
+      [this.fadeStartInput, "fadeStart"],
+      [this.fadeEndInput, "fadeEnd"],
+    ];
+    for (const [input, handleId] of handleInputMap) {
+      if (!input) {
+        continue;
+      }
+      input.addEventListener("focus", () => {
+        this.focusedHandle = handleId;
+        drawWaveform(this);
+      });
+      input.addEventListener("blur", () => {
+        if (this.focusedHandle === handleId) {
+          this.focusedHandle = null;
+          drawWaveform(this);
+        }
       });
     }
 

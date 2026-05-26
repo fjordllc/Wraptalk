@@ -102,6 +102,18 @@ const MAX_CANVAS_WIDTH = 30000;
 
 const TICK_INTERVAL_CHOICES = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
 
+function drawFocusHalo(ctx, x, y, w, h) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+  ctx.lineWidth = 2;
+  ctx.shadowColor = "rgba(255, 255, 255, 0.6)";
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 5);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function pickTickInterval(secondsPerPixel) {
   // Aim for one label every ~100 px to balance density and readability.
   const target = 100 * secondsPerPixel;
@@ -226,12 +238,21 @@ export function drawWaveform(controller) {
     ctx.fillStyle = "rgba(34, 197, 94, 0.95)";
     ctx.beginPath();
     ctx.roundRect(startX - 7, height - 18, 14, 16, 4);
+    ctx.fill();
+    ctx.beginPath();
     ctx.roundRect(endX - 7, height - 18, 14, 16, 4);
     ctx.fill();
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
     ctx.fillRect(startX - 1, height - 15, 2, 10);
     ctx.fillRect(endX - 1, height - 15, 2, 10);
+
+    if (controller.focusedHandle === "fadeStart") {
+      drawFocusHalo(ctx, startX - 7, height - 18, 14, 16);
+    }
+    if (controller.focusedHandle === "fadeEnd") {
+      drawFocusHalo(ctx, endX - 7, height - 18, 14, 16);
+    }
   }
 
   if (controller.hasTrimHandles && duration > 0 && controller.trimStartInput && controller.trimEndInput) {
@@ -278,6 +299,13 @@ export function drawWaveform(controller) {
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
     ctx.fillRect(trimStartX - 1, 5, 2, 10);
     ctx.fillRect(trimEndX - 1, 5, 2, 10);
+
+    if (controller.focusedHandle === "trimStart") {
+      drawFocusHalo(ctx, trimStartX - 7, 2, 14, 16);
+    }
+    if (controller.focusedHandle === "trimEnd") {
+      drawFocusHalo(ctx, trimEndX - 7, 2, 14, 16);
+    }
   }
 
   if (controller.hasTargetHandle && duration > 0 && controller.targetInput) {
@@ -299,6 +327,10 @@ export function drawWaveform(controller) {
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
     ctx.fillRect(targetX - 1, 5, 2, 10);
+
+    if (controller.focusedHandle === "target") {
+      drawFocusHalo(ctx, targetX - 7, 2, 14, 16);
+    }
   }
 
   if (duration > 0) {
