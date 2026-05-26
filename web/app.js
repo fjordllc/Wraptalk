@@ -268,17 +268,30 @@ async function readMixSpec() {
   const input = requireFile(inputFile, "トーク音源");
   const intro = await resolveAudioInput(introFile, DEFAULT_INTRO_URL, DEFAULT_INTRO_NAME, "イントロ音源");
   const outro = await resolveAudioInput(outroFile, DEFAULT_OUTRO_URL, DEFAULT_OUTRO_NAME, "アウトロ音源");
+
+  // Single source of truth for the numeric ranges. Mirrors the HTML
+  // min/max attrs on the corresponding inputs. Update both if the bounds
+  // ever move so the browser-level and submit-time validation stay in sync.
+  const rangedInputs = [
+    { key: "introPad", input: introPadInput, label: "イントロの開始位置", min: 0, max: 600 },
+    { key: "outroOverlap", input: outroOverlapInput, label: "アウトロの開始位置", min: 0, max: 600 },
+    { key: "voiceLufs", input: voiceLufsInput, label: "話し声の目標LUFS", min: -40, max: -8 },
+    { key: "introMusicVolume", input: introMusicVolumeInput, label: "イントロの基本音量", min: 0, max: 1 },
+    { key: "outroMusicVolume", input: outroMusicVolumeInput, label: "アウトロの基本音量", min: 0, max: 1 },
+    { key: "introDuckLevel", input: introDuckLevelInput, label: "イントロのトーク中音量", min: 0, max: 100, scale: 1 / 100 },
+    { key: "outroDuckLevel", input: outroDuckLevelInput, label: "アウトロのトーク中音量", min: 0, max: 100, scale: 1 / 100 },
+  ];
+  const ranged = {};
+  for (const { key, input: el, label, min, max, scale } of rangedInputs) {
+    const value = assertInRange(parseRequiredNumber(el.value, label), min, max, label);
+    ranged[key] = scale ? value * scale : value;
+  }
+
   return {
     input,
     intro,
     outro,
-    introPad: assertInRange(parseRequiredNumber(introPadInput.value, "イントロの開始位置"), 0, 600, "イントロの開始位置"),
-    outroOverlap: assertInRange(parseRequiredNumber(outroOverlapInput.value, "アウトロの開始位置"), 0, 600, "アウトロの開始位置"),
-    voiceLufs: assertInRange(parseRequiredNumber(voiceLufsInput.value, "話し声の目標LUFS"), -40, -8, "話し声の目標LUFS"),
-    introMusicVolume: assertInRange(parseRequiredNumber(introMusicVolumeInput.value, "イントロの基本音量"), 0, 1, "イントロの基本音量"),
-    outroMusicVolume: assertInRange(parseRequiredNumber(outroMusicVolumeInput.value, "アウトロの基本音量"), 0, 1, "アウトロの基本音量"),
-    introDuckLevel: assertInRange(parseRequiredNumber(introDuckLevelInput.value, "イントロのトーク中音量"), 0, 100, "イントロのトーク中音量") / 100,
-    outroDuckLevel: assertInRange(parseRequiredNumber(outroDuckLevelInput.value, "アウトロのトーク中音量"), 0, 100, "アウトロのトーク中音量") / 100,
+    ...ranged,
     introFadeStart: Math.max(0, parseRequiredNumber(introFadeStartInput.value, "イントロのフェード開始")),
     introFadeEnd: Math.max(0, parseRequiredNumber(introFadeEndInput.value, "イントロのフェード終了")),
     outroFadeStart: Math.max(0, parseRequiredNumber(outroFadeStartInput.value, "アウトロのフェード開始")),
