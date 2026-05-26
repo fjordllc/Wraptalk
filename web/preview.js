@@ -153,6 +153,7 @@ export class PreviewController {
     this.trimEndColor = trim.endColor ?? "244, 63, 94";
 
     this.audio = null;
+    this.audioAbort = null;
     this.objectUrl = null;
     this.peaks = null;
     this.audioBuffer = null;
@@ -258,43 +259,33 @@ export class PreviewController {
   async prepare() {
     const token = ++this.prepareToken;
 
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-      this.objectUrl = null;
-    }
+    // Tear down any previous prepare's audio + listeners before allocating
+    // the next one, so we don't leak background timeupdate fires.
+    this.#releaseAudio();
 
     const { url, revoke } = resolvePreviewSource(this.input, this.fallbackUrl);
     const audio = new Audio(url);
     this.audio = audio;
     this.objectUrl = revoke ? url : null;
+    const audioAbort = new AbortController();
+    this.audioAbort = audioAbort;
+    const { signal } = audioAbort;
 
     audio.addEventListener("timeupdate", () => {
       if (this.audio === audio) {
         this.updateUI();
       }
-    });
+    }, { signal });
 
     audio.addEventListener("loadedmetadata", () => {
       if (this.audio === audio) {
         this.updateUI();
       }
-    });
+    }, { signal });
 
     await new Promise((resolve, reject) => {
-      const onLoaded = () => {
-        cleanup();
-        resolve();
-      };
-      const onError = () => {
-        cleanup();
-        reject(new Error("プレビュー音源を読み込めませんでした。"));
-      };
-      const cleanup = () => {
-        audio.removeEventListener("loadedmetadata", onLoaded);
-        audio.removeEventListener("error", onError);
-      };
-      audio.addEventListener("loadedmetadata", onLoaded);
-      audio.addEventListener("error", onError);
+      audio.addEventListener("loadedmetadata", () => resolve(), { once: true, signal });
+      audio.addEventListener("error", () => reject(new Error("プレビュー音源を読み込めませんでした。")), { once: true, signal });
     });
 
     // Bail out when a later prepare() on THIS controller has superseded us,
@@ -618,6 +609,24 @@ export class PreviewController {
     this.canvas.addEventListener("pointercancel", stopDragging);
   }
 
+  #releaseAudio() {
+    if (this.audioAbort) {
+      this.audioAbort.abort();
+      this.audioAbort = null;
+    }
+    if (this.audio) {
+      this.audio.pause();
+      // Stop any in-flight network fetch by clearing src then calling load().
+      this.audio.removeAttribute("src");
+      this.audio.load();
+    }
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+    this.audio = null;
+  }
+
   handleSourceChange() {
     // Bump this controller's prepare token so any in-flight prepare() detects
     // the change and aborts before reaching back into our (now nulled) audio
@@ -626,11 +635,7 @@ export class PreviewController {
     if (previewSession.activeController === this) {
       previewSession.stop();
     }
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-      this.objectUrl = null;
-    }
-    this.audio = null;
+    this.#releaseAudio();
     this.audioBuffer = null;
     this.peaks = null;
     this.duration = 0;
