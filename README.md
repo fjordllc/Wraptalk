@@ -6,7 +6,7 @@
 
 すべての処理はブラウザ内の `ffmpeg.wasm` で完結し、ファイルはサーバーに送信されません。
 
-開発の経緯・設計メモは [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md)、リファクタ履歴は [REFACTOR_PROGRESS.md](./REFACTOR_PROGRESS.md) を参照してください。
+開発の経緯・設計メモは [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) を参照してください。
 
 ## 特徴
 
@@ -76,7 +76,7 @@ http://localhost:8000/ を開いてください。
 純粋関数（フィルタ式、ユーティリティ、波形ヒット判定など）にユニットテストがあります。
 
 ```bash
-npm test    # node --test web/*.test.js (63 ケース)
+npm test    # node --test web/*.test.js (76 ケース)
 ```
 
 ソースの構成・命名規則・依存関係は [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) を参照。
