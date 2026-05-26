@@ -128,10 +128,13 @@ import {
 
 ffmpegRuntime.configure({ onLog: appendLog, onProgress: setProgress });
 
-function setStatus(message) {
-  const match = message.match(/^(.*?)(\.{3,})$/);
+let currentStatusBase = "";
+let currentProgressPercent = 0;
+
+function renderStatus(base, percent) {
+  const match = base.match(/^(.*?)(\.{3,})$/);
+  statusText.replaceChildren();
   if (match) {
-    statusText.replaceChildren();
     statusText.append(match[1]);
     const ellipsis = document.createElement("span");
     ellipsis.className = "c--ellipsis";
@@ -141,9 +144,18 @@ function setStatus(message) {
       ellipsis.append(dot);
     }
     statusText.append(ellipsis);
+    if (typeof percent === "number" && percent > 0 && percent < 100) {
+      statusText.append(` ${percent}%`);
+    }
   } else {
-    statusText.textContent = message;
+    statusText.textContent = base;
   }
+}
+
+function setStatus(message) {
+  currentStatusBase = message;
+  currentProgressPercent = 0;
+  renderStatus(message, 0);
 }
 
 logToggle?.addEventListener("click", () => {
@@ -155,6 +167,10 @@ logToggle?.addEventListener("click", () => {
 function setProgress(progress) {
   const percent = Math.max(0, Math.min(100, Math.round(progress * 100)));
   meterBar.style.width = `${percent}%`;
+  currentProgressPercent = percent;
+  if (currentStatusBase) {
+    renderStatus(currentStatusBase, percent);
+  }
 }
 
 function appendLog(message) {
