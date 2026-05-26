@@ -1,5 +1,7 @@
 # Development Notes
 
+直近のレビュー指摘と作業チェックリストは [CODE_REVIEW.md](./CODE_REVIEW.md) を参照。
+
 ## Current State
 
 - 公開デモ: https://wraptalk.pages.dev/ (Cloudflare Pages)
@@ -103,6 +105,14 @@ aformat (stereo, 44.1kHz)
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
 ```
+
+### デフォルト音源と Cloudflare の 25 MiB 上限
+
+`opening.wav` (6 MB) と `ending.wav` (22.37 MB / 23,454,760 bytes) がリポジトリ直下に置かれ、`npm run build` 経由でそのまま `dist/` へコピーされる。Cloudflare Pages の **1 ファイル 25 MiB 上限** に対して `ending.wav` は残り 2.6 MiB しか余裕がない。再エンコードや差し替えで肥大化すると、デプロイが死ぬので注意:
+
+- 上限到達時の選択肢:
+  - 24-bit/96kHz など過剰スペックなら 16-bit/44.1kHz に再エンコードして縮める
+  - Cloudflare R2 等の外部 CDN に逃す（COEP 環境下の CORP ヘッダーに注意）
 
 ### 依存ファイルの配信戦略
 | 依存 | 配信方法 | 理由 |
