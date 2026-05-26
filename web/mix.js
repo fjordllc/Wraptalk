@@ -36,6 +36,8 @@ export { buildFilter } from "./filter.js";
 class FfmpegRuntime {
   #instance = new FFmpeg();
   #isLoaded = false;
+  #loadPromise = null;
+  #queue = Promise.resolve();
   #logHandler = null;
   #progressHandler = null;
 
@@ -65,36 +67,55 @@ class FfmpegRuntime {
     return this.#isLoaded;
   }
 
-  async ensureLoaded() {
+  ensureLoaded() {
     if (this.#isLoaded) {
-      return;
+      return Promise.resolve();
     }
-    await this.#instance.load({
-      coreURL: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js",
-      wasmURL: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm",
-      workerURL: "/vendor/ffmpeg/dist/esm/worker.js",
-    });
-    this.#isLoaded = true;
+    if (!this.#loadPromise) {
+      this.#loadPromise = this.#instance.load({
+        coreURL: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js",
+        wasmURL: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm",
+        workerURL: "/vendor/ffmpeg/dist/esm/worker.js",
+      }).then(() => {
+        this.#isLoaded = true;
+      }).catch((error) => {
+        // Allow retry on a later call.
+        this.#loadPromise = null;
+        throw error;
+      });
+    }
+    return this.#loadPromise;
+  }
+
+  // Serialize all fs / exec calls so concurrent callers (waveform decode,
+  // preview render, export) don't trample the single underlying ffmpeg
+  // worker. Errors don't break the chain — the next caller still runs.
+  #enqueue(work) {
+    const next = this.#queue.then(work, work);
+    this.#queue = next.catch(() => {});
+    return next;
   }
 
   writeFile(name, data) {
-    return this.#instance.writeFile(name, data);
+    return this.#enqueue(() => this.#instance.writeFile(name, data));
   }
 
   exec(args) {
-    return this.#instance.exec(args);
+    return this.#enqueue(() => this.#instance.exec(args));
   }
 
   readFile(name) {
-    return this.#instance.readFile(name);
+    return this.#enqueue(() => this.#instance.readFile(name));
   }
 
-  async deleteFile(name) {
-    try {
-      await this.#instance.deleteFile(name);
-    } catch {
-      // Best effort cleanup.
-    }
+  deleteFile(name) {
+    return this.#enqueue(async () => {
+      try {
+        await this.#instance.deleteFile(name);
+      } catch {
+        // Best effort cleanup.
+      }
+    });
   }
 
   async cleanupFiles(names) {

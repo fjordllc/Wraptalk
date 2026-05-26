@@ -137,14 +137,26 @@ function renderTimeAxis(controller, duration) {
     axis.setAttribute("aria-hidden", "true");
     scroller.appendChild(axis);
   }
-  axis.replaceChildren();
   const width = parseFloat(controller.canvas.style.width || `${controller.canvas.width}`) || controller.canvas.width;
-  axis.style.width = `${width}px`;
   if (!duration || duration <= 0) {
+    if (axis.dataset.cacheKey !== "empty") {
+      axis.dataset.cacheKey = "empty";
+      axis.replaceChildren();
+      axis.style.width = `${width}px`;
+    }
     return;
   }
   const secondsPerPixel = duration / width;
   const interval = pickTickInterval(secondsPerPixel);
+  // timeupdate fires every ~250ms — skip the DOM rebuild when nothing
+  // affecting the tick layout actually changed.
+  const cacheKey = `${duration.toFixed(3)}|${width.toFixed(0)}|${interval}`;
+  if (axis.dataset.cacheKey === cacheKey) {
+    return;
+  }
+  axis.dataset.cacheKey = cacheKey;
+  axis.replaceChildren();
+  axis.style.width = `${width}px`;
   for (let t = 0; t <= duration; t += interval) {
     const x = (t / duration) * width;
     const tick = document.createElement("span");
@@ -191,6 +203,7 @@ export function drawWaveform(controller) {
     ctx.fillStyle = "rgba(109, 101, 95, 0.8)";
     ctx.font = "12px sans-serif";
     ctx.fillText("waveform unavailable", 16, height / 2 + 4);
+    renderTimeAxis(controller, 0);
     return;
   }
 
