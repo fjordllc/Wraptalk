@@ -38,6 +38,7 @@ class FfmpegRuntime {
   #isLoaded = false;
   #loadPromise = null;
   #mutex = Promise.resolve();
+  #lockDepth = 0;
   #logHandler = null;
   #progressHandler = null;
 
@@ -90,26 +91,45 @@ class FfmpegRuntime {
   // Acquire exclusive access for a multi-step ffmpeg flow (write → exec →
   // read → cleanup). Other callers wait until fn resolves, so we never
   // interleave two flows that share filenames on the worker's fs.
+  // While fn is running, #lockDepth > 0, which is what writeFile / exec /
+  // readFile assert to keep callers from accidentally running outside a lock.
   withLock(fn) {
     const previous = this.#mutex;
-    const next = previous.then(fn, fn);
+    const next = previous.then(async () => {
+      this.#lockDepth += 1;
+      try {
+        return await fn();
+      } finally {
+        this.#lockDepth -= 1;
+      }
+    });
     this.#mutex = next.catch(() => {});
     return next;
   }
 
+  #assertLocked(method) {
+    if (this.#lockDepth === 0) {
+      throw new Error(`ffmpegRuntime.${method}() must be called inside withLock()`);
+    }
+  }
+
   writeFile(name, data) {
+    this.#assertLocked("writeFile");
     return this.#instance.writeFile(name, data);
   }
 
   exec(args) {
+    this.#assertLocked("exec");
     return this.#instance.exec(args);
   }
 
   readFile(name) {
+    this.#assertLocked("readFile");
     return this.#instance.readFile(name);
   }
 
   async deleteFile(name) {
+    this.#assertLocked("deleteFile");
     try {
       await this.#instance.deleteFile(name);
     } catch {
@@ -118,8 +138,13 @@ class FfmpegRuntime {
   }
 
   async cleanupFiles(names) {
+    this.#assertLocked("cleanupFiles");
     for (const name of names) {
-      await this.deleteFile(name);
+      try {
+        await this.#instance.deleteFile(name);
+      } catch {
+        // Best effort cleanup.
+      }
     }
   }
 }

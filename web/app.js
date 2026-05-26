@@ -740,8 +740,12 @@ function bindDropZone(input) {
     card.classList.add("is--dragover");
   });
   card.addEventListener("dragleave", (event) => {
-    // Only clear when leaving the card itself, not bubbling from children.
-    if (event.target === card) {
+    // relatedTarget is the element we're entering. If it's null (left the
+    // window) or outside the card, we've actually left the drop zone.
+    // Comparing event.target === card alone misses the case where the user
+    // exits the card while still hovering a child element.
+    const next = event.relatedTarget;
+    if (!next || !card.contains(/** @type {Node} */ (next))) {
       card.classList.remove("is--dragover");
     }
   });
