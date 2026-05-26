@@ -423,7 +423,9 @@ export async function getMediaDurationSeconds(source) {
     let objectUrl = null;
 
     const cleanup = () => {
-      media.removeAttribute("src");
+      // Some browsers re-issue a network fetch when src is just removed; setting
+      // it to an empty string before load() reliably aborts the previous request.
+      media.src = "";
       media.load();
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);

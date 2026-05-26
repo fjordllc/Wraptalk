@@ -876,7 +876,14 @@ async function runExclusiveAction(operation, failStatus) {
     await operation();
   } catch (error) {
     setStatus(failStatus);
-    appendLog(error instanceof Error ? error.message : String(error));
+    if (error instanceof Error) {
+      appendLog(error.message);
+      if (error.stack) {
+        appendLog(error.stack);
+      }
+    } else {
+      appendLog(String(error));
+    }
   } finally {
     actionButtons.forEach((b) => { b.disabled = false; });
   }
