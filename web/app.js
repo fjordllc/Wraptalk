@@ -26,6 +26,9 @@ import {
   voiceLufsInfoButton,
   voiceLufsInfoModal,
   voiceLufsInfoModalClose,
+  environmentInfoButton,
+  environmentInfoModal,
+  environmentInfoModalClose,
   introDuckingInfoButton,
   outroDuckingInfoButton,
   duckingInfoModal,
@@ -448,6 +451,7 @@ actionModal.addEventListener("click", (event) => {
 });
 
 const infoModalEntries = [
+  { triggers: [environmentInfoButton], modal: environmentInfoModal, close: environmentInfoModalClose },
   { triggers: [voiceLufsInfoButton], modal: voiceLufsInfoModal, close: voiceLufsInfoModalClose },
   { triggers: [introDuckingInfoButton, outroDuckingInfoButton], modal: duckingInfoModal, close: duckingInfoModalClose },
   { triggers: [introPadInfoButton], modal: introPadInfoModal, close: introPadInfoModalClose },

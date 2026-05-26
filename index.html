@@ -17,13 +17,9 @@
           トーク音源にイントロ・アウトロの BGM を重ね、トーク中は BGM の音量を自動で下げます。
           音量や音質の補正も内蔵なので、書き出した mp3 をそのまま配信できます。
         </p>
-        <details class="c--lede-details">
-          <summary>動作環境について</summary>
-          <p class="c--lede-note">
-            変換はブラウザ内で実行されます。60分超の mp4 はメモリ消費が大きく、
-            非力なPCやSafariでは厳しい場合があります。Chrome系デスクトップ推奨です。
-          </p>
-        </details>
+        <button id="environmentInfoButton" class="c--lede-info-button" type="button">
+          <span aria-hidden="true">ⓘ</span> 動作環境について
+        </button>
       </section>
 
       <section class="l--panel">
@@ -462,6 +458,44 @@
               <li><strong>192 kbps</strong>: 高音質。音楽要素が多い、または妥協したくない場合</li>
             </ul>
             <p>1 時間の番組での目安: 128 kbps ≈ 55 MB / 160 ≈ 70 MB / 192 ≈ 85 MB。</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="environmentInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="environmentInfoModalTitle">
+        <div class="c--modal-backdrop" data-modal-close="true"></div>
+        <div class="c--modal-window" role="document">
+          <header class="c--modal-header">
+            <h2 id="environmentInfoModalTitle" class="c--modal-title">動作環境について</h2>
+            <button id="environmentInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
+          </header>
+          <div class="c--modal-body">
+            <h3>ブラウザ内で処理</h3>
+            <p>音源・動画ファイルはサーバーに送信されません。すべてブラウザ内で完結します。トークのプライバシーを保ったまま、配信用 mp3 を生成できます。音声処理は <strong>ffmpeg.wasm</strong>（ffmpeg を WebAssembly に移植したもの）が担当しています。</p>
+
+            <h3>推奨ブラウザ</h3>
+            <ul>
+              <li><strong>Chrome / Edge のデスクトップ版を推奨</strong></li>
+              <li>Firefox、Safari でも動作しますが、ffmpeg.wasm の挙動が不安定なことがあります</li>
+              <li>モバイルブラウザは未検証です</li>
+            </ul>
+
+            <h3>ファイルサイズの目安</h3>
+            <ul>
+              <li>60 分以下の mp4 / 音声ファイルが快適に処理できます</li>
+              <li>60 分超の長尺ファイルはブラウザのメモリ制約で厳しい場合があります（ブラウザがフリーズ・タブクラッシュなど）</li>
+              <li>長尺ファイルが多い場合はローカルの ffmpeg を使うシェル版 fallback の利用を検討してください（GitHub リポジトリ参照）</li>
+            </ul>
+
+            <h3>初回読み込み</h3>
+            <p>初回起動時に <strong>ffmpeg-core.wasm（約 32MB）</strong> を jsDelivr CDN から取得します。回線速度によりますが数秒〜数十秒かかります。2 回目以降はブラウザのキャッシュから読み込まれるため高速です。オフライン環境では初回起動できません。</p>
+
+            <h3>データの保存</h3>
+            <ul>
+              <li>設定値（目標 LUFS / 基本音量 / フェード位置など）は <strong>localStorage</strong> に保存され、次回起動時に復元されます</li>
+              <li>「初期値に戻す」ボタンで保存値をクリアして初期状態に戻せます</li>
+              <li>アップロードしたファイル自体はブラウザに保存されません（タブを閉じれば消えます）</li>
+            </ul>
           </div>
         </div>
       </div>

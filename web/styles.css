@@ -100,45 +100,36 @@ h1 {
   line-height: 1.75;
 }
 
-.c--lede-note {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.7;
-  opacity: 0.85;
-}
-
-.c--lede-details {
+.c--lede-info-button {
+  appearance: none;
   margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--muted);
+  font: inherit;
   font-size: 0.86rem;
-}
-
-.c--lede-details > summary {
-  cursor: pointer;
   font-weight: 700;
-  list-style: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   transition: color 140ms ease;
 }
 
-.c--lede-details > summary:hover {
+.c--lede-info-button:hover {
   color: var(--ink);
 }
 
-.c--lede-details > summary::-webkit-details-marker {
-  display: none;
+.c--modal-body h3 {
+  margin: 16px 0 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
 }
 
-.c--lede-details > summary::before {
-  content: "ⓘ";
-  font-size: 0.96rem;
-}
-
-.c--lede-details[open] > summary::before {
-  content: "ⓘ";
+.c--modal-body h3:first-child {
+  margin-top: 0;
 }
 
 .l--panel {
