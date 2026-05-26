@@ -3,11 +3,6 @@
 /** @param {string} id */
 const $ = (id) => document.getElementById(id);
 
-/**
- * Read the value of the currently selected MP3 bitrate radio.
- * @returns {string}
- */
-
 export const loadButton = $("loadButton");
 export const processButton = $("processButton");
 export const actionModal = $("actionModal");
@@ -57,6 +52,10 @@ export const introFadeEndInput = $("introFadeEnd");
 export const outroFadeStartInput = $("outroFadeStart");
 export const outroFadeEndInput = $("outroFadeEnd");
 export const voiceLufsInput = $("voiceLufs");
+/**
+ * Read the value of the currently selected MP3 bitrate radio.
+ * @returns {string}
+ */
 export function getMp3Bitrate() {
   const checked = /** @type {HTMLInputElement | null} */ (
     document.querySelector('input[name="mp3Bitrate"]:checked')

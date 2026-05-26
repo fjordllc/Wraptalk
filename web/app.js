@@ -410,15 +410,26 @@ function closeActionModal() {
   closeModal(actionModal);
 }
 
+// Keyboard handling for the currently-open modal: Tab traps focus inside it,
+// Esc closes it. infoModalEntries is declared below; the callback reads it
+// at event time so the forward reference is fine.
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Tab") {
+  if (event.key !== "Tab" && event.key !== "Escape") {
     return;
   }
   const openInfo = infoModalEntries.find((entry) => entry.modal?.classList.contains("is--open"));
-  if (openInfo) {
-    trapFocus(openInfo.modal, event);
-  } else if (actionModal.classList.contains("is--open")) {
-    trapFocus(actionModal, event);
+  const openModalRef = openInfo?.modal ?? (actionModal?.classList.contains("is--open") ? actionModal : null);
+  if (!openModalRef) {
+    return;
+  }
+  if (event.key === "Tab") {
+    trapFocus(openModalRef, event);
+  } else {
+    if (openInfo) {
+      closeModal(openInfo.modal);
+    } else {
+      closeActionModal();
+    }
   }
 });
 
@@ -471,18 +482,6 @@ for (const entry of infoModalEntries) {
     }
   });
 }
-
-document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape") {
-    return;
-  }
-  const openInfo = infoModalEntries.find((entry) => entry.modal?.classList.contains("is--open"));
-  if (openInfo) {
-    closeModal(openInfo.modal);
-  } else if (actionModal?.classList.contains("is--open")) {
-    closeActionModal();
-  }
-});
 
 inputFile?.addEventListener("change", () => {
   if (!ffmpegRuntime.isLoaded()) {
@@ -870,6 +869,11 @@ async function runExclusiveAction(operation, failStatus) {
   }
 }
 
+// JS-only enhancement: native number spinners are hidden by CSS for visual
+// consistency, so we wrap every input[type=number] in .l--stepper at runtime
+// and provide ± buttons that drive input.stepUp/Down. The page is functional
+// without JS (the inputs still accept typed values), but the ± controls only
+// appear after this runs.
 function attachStepperButtons() {
   for (const input of document.querySelectorAll('input[type="number"]')) {
     if (input.dataset.stepperBound === "true") {
