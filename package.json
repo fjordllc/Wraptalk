@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "test": "node --test web/*.test.js"
+    "test": "node --test web/*.test.js",
+    "build": "rm -rf dist && mkdir -p dist && cp -R index.html web vendor opening.wav ending.wav _headers dist/"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",
