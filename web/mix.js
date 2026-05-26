@@ -286,7 +286,7 @@ export async function renderMixPreview(spec, kind) {
   });
 }
 
-function buildPreviewFilter(kind, spec, timings, trimmedDur, segmentDurationSec) {
+export function buildPreviewFilter(kind, spec, timings, trimmedDur, segmentDurationSec) {
   if (kind === "opening") {
     // Talk needed: from start of trimmed talk for up to (segmentDur - introPad) seconds
     const headTalkLen = Math.max(0.1, segmentDurationSec - spec.introPad);
