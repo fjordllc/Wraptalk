@@ -168,7 +168,8 @@ export class PreviewController {
     if (!this.audio) {
       return;
     }
-    const baseVolume = clamp01(parseNumberInput(this.musicVolumeInput, 0.22));
+    // The musicVolumeInput is now a 0-100 percentage; convert to a 0-1 linear gain.
+    const baseVolume = clamp01(parseNumberInput(this.musicVolumeInput, 100) / 100);
     if (!this.fadeStartInput || !this.fadeEndInput) {
       this.audio.volume = baseVolume;
       return;

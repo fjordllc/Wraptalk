@@ -142,7 +142,10 @@
                     <label for="introMusicVolume">基本音量</label>
                     <button id="introDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
                   </div>
-                  <input id="introMusicVolume" type="number" min="0" max="1" step="0.01" value="0.22" />
+                  <div class="l--input-suffix">
+                    <input id="introMusicVolume" type="number" min="0" max="100" step="1" value="100" />
+                    <span class="c--input-suffix">%</span>
+                  </div>
                   <label for="introDuckLevel">トーク中音量</label>
                   <div class="l--input-suffix">
                     <input id="introDuckLevel" type="number" min="0" max="100" step="5" value="30" />
@@ -242,7 +245,10 @@
                     <label for="outroMusicVolume">基本音量</label>
                     <button id="outroDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
                   </div>
-                  <input id="outroMusicVolume" type="number" min="0" max="1" step="0.01" value="0.22" />
+                  <div class="l--input-suffix">
+                    <input id="outroMusicVolume" type="number" min="0" max="100" step="1" value="100" />
+                    <span class="c--input-suffix">%</span>
+                  </div>
                   <label for="outroDuckLevel">トーク中音量</label>
                   <div class="l--input-suffix">
                     <input id="outroDuckLevel" type="number" min="0" max="100" step="5" value="30" />

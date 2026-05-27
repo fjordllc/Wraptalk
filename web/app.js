@@ -263,8 +263,8 @@ async function readMixSpec() {
     { key: "introPad", input: introPadInput, label: "イントロの開始位置", min: 0, max: 600 },
     { key: "outroOverlap", input: outroOverlapInput, label: "アウトロの開始位置", min: 0, max: 600 },
     { key: "voiceLufs", input: voiceLufsInput, label: "話し声の目標LUFS", min: -40, max: -8 },
-    { key: "introMusicVolume", input: introMusicVolumeInput, label: "イントロの基本音量", min: 0, max: 1 },
-    { key: "outroMusicVolume", input: outroMusicVolumeInput, label: "アウトロの基本音量", min: 0, max: 1 },
+    { key: "introMusicVolume", input: introMusicVolumeInput, label: "イントロの基本音量", min: 0, max: 100, scale: 1 / 100 },
+    { key: "outroMusicVolume", input: outroMusicVolumeInput, label: "アウトロの基本音量", min: 0, max: 100, scale: 1 / 100 },
     { key: "introDuckLevel", input: introDuckLevelInput, label: "イントロのトーク中音量", min: 0, max: 100, scale: 1 / 100 },
     { key: "outroDuckLevel", input: outroDuckLevelInput, label: "アウトロのトーク中音量", min: 0, max: 100, scale: 1 / 100 },
   ];
