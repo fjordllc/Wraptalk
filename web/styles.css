@@ -144,6 +144,25 @@ h1 {
   margin-top: 0;
 }
 
+.c--kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  padding: 2px 8px;
+  margin-right: 6px;
+  border: 1px solid rgba(var(--ink-rgb), 0.35);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: rgba(var(--ink-rgb), 0.08);
+  color: var(--ink);
+  font-family: "SFMono-Regular", "Menlo", monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+}
+
 .l--panel {
   background: transparent;
   border: 0;
@@ -977,7 +996,7 @@ h1 {
   background: rgba(var(--white-rgb), 0.6);
   cursor: pointer;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
   transition: background 140ms ease, border-color 140ms ease;
