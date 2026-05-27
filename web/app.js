@@ -18,6 +18,7 @@ import {
 } from "./utils.js";
 import {
   PreviewController,
+  previewSession,
   setPreviewLogger,
 } from "./preview.js";
 import {
@@ -429,6 +430,63 @@ document.addEventListener("keydown", (event) => {
     } else {
       closeActionModal();
     }
+  }
+});
+
+// Global preview shortcuts. Skip when typing in an input / textarea / contenteditable
+// so the keys still type literally, and skip when any modal is open so the focus
+// trap is in charge.
+function isTypingTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+    return true;
+  }
+  return target.isContentEditable;
+}
+
+function isAnyModalOpen() {
+  if (actionModal?.classList.contains("is--open")) {
+    return true;
+  }
+  return infoModalEntries.some((entry) => entry.modal?.classList.contains("is--open"));
+}
+
+function activePreviewController() {
+  // Prefer whichever controller is currently driving playback; otherwise default
+  // to the talk preview (the most common target).
+  return previewSession.activeController ?? inputWaveformController;
+}
+
+function seekActive(deltaSec) {
+  const controller = activePreviewController();
+  const audio = controller?.audio;
+  if (!audio) {
+    return;
+  }
+  const duration = audio.duration || controller.duration || 0;
+  audio.currentTime = Math.max(0, Math.min(duration, audio.currentTime + deltaSec));
+  controller.updateUI();
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.altKey || event.ctrlKey || event.metaKey) {
+    return;
+  }
+  if (isTypingTarget(event.target) || isAnyModalOpen()) {
+    return;
+  }
+  if (event.key === " " || event.key === "Spacebar") {
+    event.preventDefault();
+    activePreviewController()?.toggle();
+  } else if (event.key === ",") {
+    event.preventDefault();
+    seekActive(-5);
+  } else if (event.key === ".") {
+    event.preventDefault();
+    seekActive(5);
   }
 });
 
