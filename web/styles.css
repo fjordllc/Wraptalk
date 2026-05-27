@@ -827,6 +827,12 @@ h1 {
   color: var(--muted);
   font-size: 0.92rem;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.l--label-with-info > label,
+.l--volume-inline > label {
+  white-space: nowrap;
 }
 
 /* ============================================================
