@@ -653,6 +653,12 @@ h1 {
   gap: 24px;
 }
 
+.l--volume-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .l--volume-inline label {
   font-size: 0.92rem;
   font-weight: 700;

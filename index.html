@@ -57,11 +57,13 @@
                   </div>
                 </div>
                 <div class="l--volume-inline">
-                  <div class="l--label-with-info">
-                    <label for="voiceLufs">目標LUFS</label>
-                    <button id="voiceLufsInfoButton" class="c--info-button" type="button" aria-label="目標LUFS について">ⓘ</button>
+                  <div class="l--volume-field">
+                    <div class="l--label-with-info">
+                      <label for="voiceLufs">目標LUFS</label>
+                      <button id="voiceLufsInfoButton" class="c--info-button" type="button" aria-label="目標LUFS について">ⓘ</button>
+                    </div>
+                    <input id="voiceLufs" type="number" min="-40" max="-8" step="0.5" value="-16" />
                   </div>
-                  <input id="voiceLufs" type="number" min="-40" max="-8" step="0.5" value="-16" />
                 </div>
                 <div class="l--zoom-toolbar">
                   <div class="c--zoom-control" aria-label="トーク音源の波形ズーム">
@@ -139,18 +141,22 @@
                   </div>
                 </div>
                 <div class="l--volume-inline">
-                  <div class="l--label-with-info">
-                    <label for="introMusicVolume">基本音量</label>
-                    <button id="introDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
+                  <div class="l--volume-field">
+                    <div class="l--label-with-info">
+                      <label for="introMusicVolume">基本音量</label>
+                      <button id="introDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
+                    </div>
+                    <div class="l--input-suffix">
+                      <input id="introMusicVolume" type="number" min="0" max="100" step="1" value="100" />
+                      <span class="c--input-suffix">%</span>
+                    </div>
                   </div>
-                  <div class="l--input-suffix">
-                    <input id="introMusicVolume" type="number" min="0" max="100" step="1" value="100" />
-                    <span class="c--input-suffix">%</span>
-                  </div>
-                  <label for="introDuckLevel">トーク中音量</label>
-                  <div class="l--input-suffix">
-                    <input id="introDuckLevel" type="number" min="0" max="100" step="5" value="30" />
-                    <span class="c--input-suffix">%</span>
+                  <div class="l--volume-field">
+                    <label for="introDuckLevel">トーク中音量</label>
+                    <div class="l--input-suffix">
+                      <input id="introDuckLevel" type="number" min="0" max="100" step="5" value="30" />
+                      <span class="c--input-suffix">%</span>
+                    </div>
                   </div>
                 </div>
                 <div class="l--zoom-toolbar">
@@ -242,18 +248,22 @@
                   </div>
                 </div>
                 <div class="l--volume-inline">
-                  <div class="l--label-with-info">
-                    <label for="outroMusicVolume">基本音量</label>
-                    <button id="outroDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
+                  <div class="l--volume-field">
+                    <div class="l--label-with-info">
+                      <label for="outroMusicVolume">基本音量</label>
+                      <button id="outroDuckingInfoButton" class="c--info-button" type="button" aria-label="基本音量とトーク中音量 について">ⓘ</button>
+                    </div>
+                    <div class="l--input-suffix">
+                      <input id="outroMusicVolume" type="number" min="0" max="100" step="1" value="100" />
+                      <span class="c--input-suffix">%</span>
+                    </div>
                   </div>
-                  <div class="l--input-suffix">
-                    <input id="outroMusicVolume" type="number" min="0" max="100" step="1" value="100" />
-                    <span class="c--input-suffix">%</span>
-                  </div>
-                  <label for="outroDuckLevel">トーク中音量</label>
-                  <div class="l--input-suffix">
-                    <input id="outroDuckLevel" type="number" min="0" max="100" step="5" value="30" />
-                    <span class="c--input-suffix">%</span>
+                  <div class="l--volume-field">
+                    <label for="outroDuckLevel">トーク中音量</label>
+                    <div class="l--input-suffix">
+                      <input id="outroDuckLevel" type="number" min="0" max="100" step="5" value="30" />
+                      <span class="c--input-suffix">%</span>
+                    </div>
                   </div>
                 </div>
                 <div class="l--zoom-toolbar">
