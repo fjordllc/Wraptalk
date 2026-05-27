@@ -32,6 +32,7 @@ import {
   outroOverlapInfoButton,
   talkTrimInfoButton,
   mp3BitrateInfoButton,
+  shortcutInfoButton,
   inputFile,
   inputMeta,
   inputJumpEndButton,
@@ -528,6 +529,7 @@ const infoModalEntries = [
   { key: "outroOverlap", title: "トーク終了位置（アウトロ）", triggers: [outroOverlapInfoButton] },
   { key: "talkTrim", title: "トークの使用範囲", triggers: [talkTrimInfoButton] },
   { key: "mp3Bitrate", title: "MP3 ビットレート", triggers: [mp3BitrateInfoButton] },
+  { key: "shortcut", title: "キーボードショートカット", triggers: [shortcutInfoButton] },
 ];
 
 function buildInfoModal({ key, title }) {

@@ -52,6 +52,7 @@
                       <button id="inputJumpTrimStartButton" class="c--jump-button c--jump-trim-start" type="button" disabled title="トーク開始位置に移動" aria-label="トーク開始位置に移動"></button>
                       <button id="inputJumpTrimEndButton" class="c--jump-button c--jump-trim-end" type="button" disabled title="トーク終了位置に移動" aria-label="トーク終了位置に移動"></button>
                       <button id="inputJumpEndButton" class="c--jump-button" type="button" disabled title="末尾に移動" aria-label="末尾に移動">⏭</button>
+                      <button id="shortcutInfoButton" class="c--info-button" type="button" aria-label="キーボードショートカット について">ⓘ</button>
                     </div>
                   </div>
                 </div>
@@ -438,15 +439,17 @@
         <p>1 時間の番組での目安: 128 kbps ≈ 55 MB / 160 ≈ 70 MB / 192 ≈ 85 MB。</p>
       </template>
 
-      <template id="environmentInfoContent">
-        <h3>キーボードショートカット</h3>
+      <template id="shortcutInfoContent">
+        <p>試聴中に使えるキー操作です。</p>
         <ul>
           <li><strong>Space</strong>: 試聴の再生・停止を切り替え（最後に再生していたものか、トーク試聴）</li>
           <li><strong>,</strong>: 5 秒戻る</li>
           <li><strong>.</strong>: 5 秒進む</li>
         </ul>
-        <p>入力欄やモーダル表示中は無効になります。</p>
+        <p>入力欄に focus が当たっているとき・モーダル表示中は無効になります。</p>
+      </template>
 
+      <template id="environmentInfoContent">
         <h3>ブラウザ内で処理</h3>
         <p>音源・動画ファイルはサーバーに送信されません。すべてブラウザ内で完結します。トークのプライバシーを保ったまま、配信用 mp3 を生成できます。音声処理は <strong>ffmpeg.wasm</strong>（ffmpeg を WebAssembly に移植したもの）が担当しています。</p>
 

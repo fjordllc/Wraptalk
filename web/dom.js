@@ -15,6 +15,7 @@ export const introPadInfoButton = $("introPadInfoButton");
 export const outroOverlapInfoButton = $("outroOverlapInfoButton");
 export const talkTrimInfoButton = $("talkTrimInfoButton");
 export const mp3BitrateInfoButton = $("mp3BitrateInfoButton");
+export const shortcutInfoButton = $("shortcutInfoButton");
 export const previewOpeningButton = $("previewOpeningButton");
 export const previewEndingButton = $("previewEndingButton");
 export const mixPreviewBlock = $("mixPreviewBlock");
