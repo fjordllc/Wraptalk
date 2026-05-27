@@ -417,18 +417,18 @@ h1 {
 }
 
 .l--media-toolbar > .l--preview-controls {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
 }
 
 .l--media-toolbar > .l--volume-inline {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
 }
 
 .l--zoom-toolbar {
   display: flex;
-  flex: 0 0 auto;
-  margin-left: auto;
+  flex: 1 1 0;
+  justify-content: flex-end;
 }
 
 .c--zoom-control {
