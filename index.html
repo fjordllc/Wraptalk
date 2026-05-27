@@ -383,145 +383,95 @@
         </div>
       </div>
 
-      <div id="duckingInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="duckingInfoModalTitle">
-        <div class="c--modal-backdrop" data-modal-close="true"></div>
-        <div class="c--modal-window" role="document">
-          <header class="c--modal-header">
-            <h2 id="duckingInfoModalTitle" class="c--modal-title">基本音量とトーク中音量</h2>
-            <button id="duckingInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
-          </header>
-          <div class="c--modal-body">
-            <p>BGM の音量は、トークが入っているかどうかで自動的に切り替わります（Ducking）。</p>
-            <p><strong>基本音量</strong>: トークが入っていない区間（イントロの前半、アウトロの後半など）で再生される、BGM の素の音量。</p>
-            <p><strong>トーク中音量</strong>: トークが BGM に被さっている区間での、基本音量に対する割合。たとえば 30% にすると、トーク中は基本音量の 30% まで自動で下がり、トークが終わると基本音量に戻ります。</p>
-            <p>切り替えはガクつかないよう短いフェードで行われます。トークが少しでも聞こえづらいときは、トーク中音量を小さく（10〜20%）してみてください。</p>
+      <template id="infoModalShell">
+        <div class="c--modal" role="dialog" aria-hidden="true">
+          <div class="c--modal-backdrop" data-modal-close="true"></div>
+          <div class="c--modal-window" role="document">
+            <header class="c--modal-header">
+              <h2 class="c--modal-title js--info-modal-title"></h2>
+              <button class="c--modal-close js--info-modal-close" type="button" aria-label="閉じる">×</button>
+            </header>
+            <div class="c--modal-body js--info-modal-body"></div>
           </div>
         </div>
-      </div>
+      </template>
 
-      <div id="introPadInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="introPadInfoModalTitle">
-        <div class="c--modal-backdrop" data-modal-close="true"></div>
-        <div class="c--modal-window" role="document">
-          <header class="c--modal-header">
-            <h2 id="introPadInfoModalTitle" class="c--modal-title">トーク開始位置（イントロ）</h2>
-            <button id="introPadInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
-          </header>
-          <div class="c--modal-body">
-            <p>イントロ BGM の何秒目からトークが乗ってくるか、を指定する値です。</p>
-            <p>たとえば <strong>10 秒</strong>に設定すると、最初の 10 秒間はイントロ BGM だけが流れ、10 秒目からトークがフェードインしてきます。</p>
-            <p>イントロの波形上にある<span class="u--handle-tag-yellow">黄色のハンドル</span>をドラッグしても変更できます。BGM のキメや盛り上がりに合わせて配置するのがおすすめです。</p>
-          </div>
-        </div>
-      </div>
+      <template id="duckingInfoContent">
+        <p>BGM の音量は、トークが入っているかどうかで自動的に切り替わります（Ducking）。</p>
+        <p><strong>基本音量</strong>: トークが入っていない区間（イントロの前半、アウトロの後半など）で再生される、BGM の素の音量。</p>
+        <p><strong>トーク中音量</strong>: トークが BGM に被さっている区間での、基本音量に対する割合。たとえば 30% にすると、トーク中は基本音量の 30% まで自動で下がり、トークが終わると基本音量に戻ります。</p>
+        <p>切り替えはガクつかないよう短いフェードで行われます。トークが少しでも聞こえづらいときは、トーク中音量を小さく（10〜20%）してみてください。</p>
+      </template>
 
-      <div id="outroOverlapInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="outroOverlapInfoModalTitle">
-        <div class="c--modal-backdrop" data-modal-close="true"></div>
-        <div class="c--modal-window" role="document">
-          <header class="c--modal-header">
-            <h2 id="outroOverlapInfoModalTitle" class="c--modal-title">トーク終了位置（アウトロ）</h2>
-            <button id="outroOverlapInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
-          </header>
-          <div class="c--modal-body">
-            <p>アウトロ BGM の何秒目でトークが終わるか、を指定する値です。</p>
-            <p>たとえば <strong>98 秒</strong>に設定すると、アウトロ BGM の頭から 98 秒目でトークが終わり、その後はアウトロ BGM だけが残って自然にフェードアウトします。</p>
-            <p>アウトロの波形上にある<span class="u--handle-tag-red">赤色のハンドル</span>をドラッグしても変更できます。BGM のエンディングが綺麗に締まる位置に合わせるのがコツです。</p>
-          </div>
-        </div>
-      </div>
+      <template id="introPadInfoContent">
+        <p>イントロ BGM の何秒目からトークが乗ってくるか、を指定する値です。</p>
+        <p>たとえば <strong>10 秒</strong>に設定すると、最初の 10 秒間はイントロ BGM だけが流れ、10 秒目からトークがフェードインしてきます。</p>
+        <p>イントロの波形上にある<span class="u--handle-tag-yellow">黄色のハンドル</span>をドラッグしても変更できます。BGM のキメや盛り上がりに合わせて配置するのがおすすめです。</p>
+      </template>
 
-      <div id="talkTrimInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="talkTrimInfoModalTitle">
-        <div class="c--modal-backdrop" data-modal-close="true"></div>
-        <div class="c--modal-window" role="document">
-          <header class="c--modal-header">
-            <h2 id="talkTrimInfoModalTitle" class="c--modal-title">トークの使用範囲</h2>
-            <button id="talkTrimInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
-          </header>
-          <div class="c--modal-body">
-            <p>アップロードしたトーク音源のうち、書き出しに含める範囲を指定します。</p>
-            <p><strong>開始位置</strong>: ここより前は無視されます。録音前のテスト音声、咳払い、雑談などを切り落とすのに使います。</p>
-            <p><strong>終了位置</strong>: ここより後は無視されます。0 のままなら末尾まで全部使います。</p>
-            <p>波形上のハンドル（<span class="u--handle-tag-yellow">黄</span>=開始 / <span class="u--handle-tag-red">赤</span>=終了）をドラッグしても調整できます。</p>
-          </div>
-        </div>
-      </div>
+      <template id="outroOverlapInfoContent">
+        <p>アウトロ BGM の何秒目でトークが終わるか、を指定する値です。</p>
+        <p>たとえば <strong>98 秒</strong>に設定すると、アウトロ BGM の頭から 98 秒目でトークが終わり、その後はアウトロ BGM だけが残って自然にフェードアウトします。</p>
+        <p>アウトロの波形上にある<span class="u--handle-tag-red">赤色のハンドル</span>をドラッグしても変更できます。BGM のエンディングが綺麗に締まる位置に合わせるのがコツです。</p>
+      </template>
 
-      <div id="mp3BitrateInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="mp3BitrateInfoModalTitle">
-        <div class="c--modal-backdrop" data-modal-close="true"></div>
-        <div class="c--modal-window" role="document">
-          <header class="c--modal-header">
-            <h2 id="mp3BitrateInfoModalTitle" class="c--modal-title">MP3 ビットレート</h2>
-            <button id="mp3BitrateInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
-          </header>
-          <div class="c--modal-body">
-            <p>書き出す mp3 の音質（=ファイルサイズ）を決めます。数値が大きいほど高音質ですがファイルも大きくなります。</p>
-            <ul>
-              <li><strong>128 kbps</strong>: 軽量。話し声中心のポッドキャストなら十分な品質。<strong>迷ったらこれ</strong></li>
-              <li><strong>160 kbps</strong>: 中間。BGM や効果音もそこそこ綺麗に</li>
-              <li><strong>192 kbps</strong>: 高音質。音楽要素が多い、または妥協したくない場合</li>
-            </ul>
-            <p>1 時間の番組での目安: 128 kbps ≈ 55 MB / 160 ≈ 70 MB / 192 ≈ 85 MB。</p>
-          </div>
-        </div>
-      </div>
+      <template id="talkTrimInfoContent">
+        <p>アップロードしたトーク音源のうち、書き出しに含める範囲を指定します。</p>
+        <p><strong>開始位置</strong>: ここより前は無視されます。録音前のテスト音声、咳払い、雑談などを切り落とすのに使います。</p>
+        <p><strong>終了位置</strong>: ここより後は無視されます。0 のままなら末尾まで全部使います。</p>
+        <p>波形上のハンドル（<span class="u--handle-tag-yellow">黄</span>=開始 / <span class="u--handle-tag-red">赤</span>=終了）をドラッグしても調整できます。</p>
+      </template>
 
-      <div id="environmentInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="environmentInfoModalTitle">
-        <div class="c--modal-backdrop" data-modal-close="true"></div>
-        <div class="c--modal-window" role="document">
-          <header class="c--modal-header">
-            <h2 id="environmentInfoModalTitle" class="c--modal-title">動作環境について</h2>
-            <button id="environmentInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
-          </header>
-          <div class="c--modal-body">
-            <h3>ブラウザ内で処理</h3>
-            <p>音源・動画ファイルはサーバーに送信されません。すべてブラウザ内で完結します。トークのプライバシーを保ったまま、配信用 mp3 を生成できます。音声処理は <strong>ffmpeg.wasm</strong>（ffmpeg を WebAssembly に移植したもの）が担当しています。</p>
+      <template id="mp3BitrateInfoContent">
+        <p>書き出す mp3 の音質(=ファイルサイズ)を決めます。数値が大きいほど高音質ですがファイルも大きくなります。</p>
+        <ul>
+          <li><strong>128 kbps</strong>: 軽量。話し声中心のポッドキャストなら十分な品質。<strong>迷ったらこれ</strong></li>
+          <li><strong>160 kbps</strong>: 中間。BGM や効果音もそこそこ綺麗に</li>
+          <li><strong>192 kbps</strong>: 高音質。音楽要素が多い、または妥協したくない場合</li>
+        </ul>
+        <p>1 時間の番組での目安: 128 kbps ≈ 55 MB / 160 ≈ 70 MB / 192 ≈ 85 MB。</p>
+      </template>
 
-            <h3>推奨ブラウザ</h3>
-            <ul>
-              <li><strong>Chrome / Edge のデスクトップ版を推奨</strong></li>
-              <li>Firefox、Safari でも動作しますが、ffmpeg.wasm の挙動が不安定なことがあります</li>
-              <li>モバイルブラウザは未検証です</li>
-            </ul>
+      <template id="environmentInfoContent">
+        <h3>ブラウザ内で処理</h3>
+        <p>音源・動画ファイルはサーバーに送信されません。すべてブラウザ内で完結します。トークのプライバシーを保ったまま、配信用 mp3 を生成できます。音声処理は <strong>ffmpeg.wasm</strong>（ffmpeg を WebAssembly に移植したもの）が担当しています。</p>
 
-            <h3>ファイルサイズの目安</h3>
-            <ul>
-              <li>60 分以下の mp4 / 音声ファイルが快適に処理できます</li>
-              <li>60 分超の長尺ファイルはブラウザのメモリ制約で厳しい場合があります（ブラウザがフリーズ・タブクラッシュなど）</li>
-              <li>長尺ファイルが多い場合はローカルの ffmpeg を使うシェル版 fallback の利用を検討してください（GitHub リポジトリ参照）</li>
-            </ul>
+        <h3>推奨ブラウザ</h3>
+        <ul>
+          <li><strong>Chrome / Edge のデスクトップ版を推奨</strong></li>
+          <li>Firefox、Safari でも動作しますが、ffmpeg.wasm の挙動が不安定なことがあります</li>
+          <li>モバイルブラウザは未検証です</li>
+        </ul>
 
-            <h3>初回読み込み</h3>
-            <p>初回起動時に <strong>ffmpeg-core.wasm（約 32MB）</strong> を jsDelivr CDN から取得します。回線速度によりますが数秒〜数十秒かかります。2 回目以降はブラウザのキャッシュから読み込まれるため高速です。オフライン環境では初回起動できません。</p>
+        <h3>ファイルサイズの目安</h3>
+        <ul>
+          <li>60 分以下の mp4 / 音声ファイルが快適に処理できます</li>
+          <li>60 分超の長尺ファイルはブラウザのメモリ制約で厳しい場合があります（ブラウザがフリーズ・タブクラッシュなど）</li>
+          <li>長尺ファイルが多い場合はローカルの ffmpeg を使うシェル版 fallback の利用を検討してください（GitHub リポジトリ参照）</li>
+        </ul>
 
-            <h3>データの保存</h3>
-            <ul>
-              <li>設定値（目標 LUFS / 基本音量 / フェード位置など）は <strong>localStorage</strong> に保存され、次回起動時に復元されます</li>
-              <li>「初期値に戻す」ボタンで保存値をクリアして初期状態に戻せます</li>
-              <li>アップロードしたファイル自体はブラウザに保存されません（タブを閉じれば消えます）</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        <h3>初回読み込み</h3>
+        <p>初回起動時に <strong>ffmpeg-core.wasm（約 32MB）</strong> を jsDelivr CDN から取得します。回線速度によりますが数秒〜数十秒かかります。2 回目以降はブラウザのキャッシュから読み込まれるため高速です。オフライン環境では初回起動できません。</p>
 
-      <div id="voiceLufsInfoModal" class="c--modal" role="dialog" aria-hidden="true" aria-labelledby="voiceLufsInfoModalTitle">
-        <div class="c--modal-backdrop" data-modal-close="true"></div>
-        <div class="c--modal-window" role="document">
-          <header class="c--modal-header">
-            <h2 id="voiceLufsInfoModalTitle" class="c--modal-title">目標LUFS とは</h2>
-            <button id="voiceLufsInfoModalClose" class="c--modal-close" type="button" aria-label="閉じる">×</button>
-          </header>
-          <div class="c--modal-body">
-            <p>LUFS（Loudness Units relative to Full Scale）は、人間の耳が感じる音の大きさを国際標準で数値化した指標です。マイナス値で表され、<strong>0 に近いほど大きく、値が小さい（マイナスが深い）ほど静か</strong>になります。</p>
-            <p>本ツールでは話し声をこの目標値に揃え、聞き手にとって安定した音量で配信できるようにします。</p>
-            <p>主な配信プラットフォームの基準目安:</p>
-            <ul>
-              <li><strong>Spotify / Apple Podcasts</strong>: -14 〜 -16 LUFS</li>
-              <li><strong>YouTube</strong>: -14 LUFS</li>
-              <li><strong>一般的なポッドキャスト</strong>: <strong>-16 LUFS</strong>（このツールの初期値）</li>
-            </ul>
-            <p>多くのプラットフォームは再生時に自動正規化を行うため、目安値に揃えておくと「再生環境による音量差」が小さくなります。迷ったら <strong>-16</strong> のままで OK です。</p>
-          </div>
-        </div>
-      </div>
+        <h3>データの保存</h3>
+        <ul>
+          <li>設定値（目標 LUFS / 基本音量 / フェード位置など）は <strong>localStorage</strong> に保存され、次回起動時に復元されます</li>
+          <li>「初期値に戻す」ボタンで保存値をクリアして初期状態に戻せます</li>
+          <li>アップロードしたファイル自体はブラウザに保存されません（タブを閉じれば消えます）</li>
+        </ul>
+      </template>
+
+      <template id="voiceLufsInfoContent">
+        <p>LUFS（Loudness Units relative to Full Scale）は、人間の耳が感じる音の大きさを国際標準で数値化した指標です。マイナス値で表され、<strong>0 に近いほど大きく、値が小さい（マイナスが深い）ほど静か</strong>になります。</p>
+        <p>本ツールでは話し声をこの目標値に揃え、聞き手にとって安定した音量で配信できるようにします。</p>
+        <p>主な配信プラットフォームの基準目安:</p>
+        <ul>
+          <li><strong>Spotify / Apple Podcasts</strong>: -14 〜 -16 LUFS</li>
+          <li><strong>YouTube</strong>: -14 LUFS</li>
+          <li><strong>一般的なポッドキャスト</strong>: <strong>-16 LUFS</strong>（このツールの初期値）</li>
+        </ul>
+        <p>多くのプラットフォームは再生時に自動正規化を行うため、目安値に揃えておくと「再生環境による音量差」が小さくなります。迷ったら <strong>-16</strong> のままで OK です。</p>
+      </template>
 
     </main>
 

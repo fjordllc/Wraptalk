@@ -24,27 +24,13 @@ import {
   actionModal,
   actionModalClose,
   voiceLufsInfoButton,
-  voiceLufsInfoModal,
-  voiceLufsInfoModalClose,
   environmentInfoButton,
-  environmentInfoModal,
-  environmentInfoModalClose,
   introDuckingInfoButton,
   outroDuckingInfoButton,
-  duckingInfoModal,
-  duckingInfoModalClose,
   introPadInfoButton,
-  introPadInfoModal,
-  introPadInfoModalClose,
   outroOverlapInfoButton,
-  outroOverlapInfoModal,
-  outroOverlapInfoModalClose,
   talkTrimInfoButton,
-  talkTrimInfoModal,
-  talkTrimInfoModalClose,
   mp3BitrateInfoButton,
-  mp3BitrateInfoModal,
-  mp3BitrateInfoModalClose,
   inputFile,
   inputMeta,
   inputJumpEndButton,
@@ -474,22 +460,41 @@ actionModal.addEventListener("click", (event) => {
   }
 });
 
+// Build the info modals from a single shell + per-modal content template.
+// Each entry's modal/close are populated when the modal is materialised below.
 const infoModalEntries = [
-  { triggers: [environmentInfoButton], modal: environmentInfoModal, close: environmentInfoModalClose },
-  { triggers: [voiceLufsInfoButton], modal: voiceLufsInfoModal, close: voiceLufsInfoModalClose },
-  { triggers: [introDuckingInfoButton, outroDuckingInfoButton], modal: duckingInfoModal, close: duckingInfoModalClose },
-  { triggers: [introPadInfoButton], modal: introPadInfoModal, close: introPadInfoModalClose },
-  { triggers: [outroOverlapInfoButton], modal: outroOverlapInfoModal, close: outroOverlapInfoModalClose },
-  { triggers: [talkTrimInfoButton], modal: talkTrimInfoModal, close: talkTrimInfoModalClose },
-  { triggers: [mp3BitrateInfoButton], modal: mp3BitrateInfoModal, close: mp3BitrateInfoModalClose },
+  { key: "environment", title: "動作環境について", triggers: [environmentInfoButton] },
+  { key: "voiceLufs", title: "目標LUFS とは", triggers: [voiceLufsInfoButton] },
+  { key: "ducking", title: "基本音量とトーク中音量", triggers: [introDuckingInfoButton, outroDuckingInfoButton] },
+  { key: "introPad", title: "トーク開始位置（イントロ）", triggers: [introPadInfoButton] },
+  { key: "outroOverlap", title: "トーク終了位置（アウトロ）", triggers: [outroOverlapInfoButton] },
+  { key: "talkTrim", title: "トークの使用範囲", triggers: [talkTrimInfoButton] },
+  { key: "mp3Bitrate", title: "MP3 ビットレート", triggers: [mp3BitrateInfoButton] },
 ];
 
+function buildInfoModal({ key, title }) {
+  const shellTpl = /** @type {HTMLTemplateElement} */ (document.getElementById("infoModalShell"));
+  const contentTpl = /** @type {HTMLTemplateElement} */ (document.getElementById(`${key}InfoContent`));
+  const node = /** @type {HTMLElement} */ (shellTpl.content.firstElementChild.cloneNode(true));
+  const titleId = `${key}InfoModalTitle`;
+  node.id = `${key}InfoModal`;
+  node.setAttribute("aria-labelledby", titleId);
+  const titleEl = node.querySelector(".js--info-modal-title");
+  titleEl.id = titleId;
+  titleEl.textContent = title;
+  node.querySelector(".js--info-modal-body").appendChild(contentTpl.content.cloneNode(true));
+  document.body.appendChild(node);
+  return node;
+}
+
 for (const entry of infoModalEntries) {
+  entry.modal = buildInfoModal(entry);
+  entry.close = entry.modal.querySelector(".js--info-modal-close");
   for (const trigger of entry.triggers) {
     trigger?.addEventListener("click", () => openModal(entry.modal));
   }
-  entry.close?.addEventListener("click", () => closeModal(entry.modal));
-  entry.modal?.addEventListener("click", (event) => {
+  entry.close.addEventListener("click", () => closeModal(entry.modal));
+  entry.modal.addEventListener("click", (event) => {
     if (event.target instanceof HTMLElement && event.target.dataset.modalClose === "true") {
       closeModal(entry.modal);
     }
