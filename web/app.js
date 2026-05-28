@@ -442,7 +442,12 @@ function isTypingTarget(target) {
     return false;
   }
   const tag = target.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+  // Buttons are included so Space activates the focused button (its native
+  // behavior) instead of being hijacked by the play/pause shortcut.
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") {
+    return true;
+  }
+  if (target.matches('[role="button"]')) {
     return true;
   }
   return target.isContentEditable;
@@ -457,7 +462,9 @@ function isAnyModalOpen() {
 
 function activePreviewController() {
   // Prefer whichever controller is currently driving playback; otherwise default
-  // to the talk preview (the most common target).
+  // to the talk preview (the most common target). inputWaveformController is
+  // declared further below, but this only runs on a keydown after init, so the
+  // forward reference is resolved by then.
   return previewSession.activeController ?? inputWaveformController;
 }
 
@@ -479,7 +486,7 @@ document.addEventListener("keydown", (event) => {
   if (isTypingTarget(event.target) || isAnyModalOpen()) {
     return;
   }
-  if (event.key === " " || event.key === "Spacebar") {
+  if (event.key === " ") {
     event.preventDefault();
     activePreviewController()?.toggle();
   } else if (event.key === ",") {
