@@ -206,10 +206,29 @@ Cross-Origin-Embedder-Policy: require-corp
 - イントロ / アウトロは既定で `opening.wav` / `ending.wav`、`--intro` / `--outro` で変更可。`podcast_auto.sh` の音声パラメータ（`--intro-pad`, `--duck-level`, フェード各種など）はそのまま渡せます。
 - `--once` を付けると「今あるファイルを 1 巡処理して終了」（バッチ実行 / 動作確認用）。
 
+#### バックグラウンド常駐（launchd / macOS）
+
+ターミナルを開きっぱなしにせず、ログイン時に自動起動したい場合は `install-watch-agent.sh` で LaunchAgent を登録します。
+
+```bash
+# 登録（即起動 + 次回ログインから自動起動。RunAtLoad + KeepAlive）
+./install-watch-agent.sh --in-dir ~/Podcast/inbox --out-dir ~/Podcast/outbox
+
+# plist の中身を確認するだけ（登録しない）
+./install-watch-agent.sh --in-dir ~/Podcast/inbox --out-dir ~/Podcast/outbox --print
+
+# 停止して削除
+./install-watch-agent.sh --uninstall
+```
+
+- `podcast_watch.sh` / `podcast_auto.sh` のオプション（`--intro`, `--duck-level`, フェード各種など）はそのまま渡せます。
+- launchd はプロセスを最小の `PATH` で起動するため、生成される plist は `PATH` に `/opt/homebrew/bin` を含めます（ffmpeg / ffprobe が Homebrew にある前提）。別の場所にある場合は `--print` で出力して調整してください。
+- ログ: `outbox/watch.log`（監視の動き）、`outbox/agent.out.log` / `agent.err.log`（launchd 側の標準出力 / エラー）。
+- plist は `~/Library/LaunchAgents/local.wraptalk.watch.plist`（`--label` で変更可）。
+
 ## 次にやると良いこと
 
 - モバイル / タッチ対応（ブラウザ版の波形ハンドルは現状ポインタ操作前提）
-- シェル版のフォルダ監視を launchd 等で常駐させる手順の整備
 
 ## ライセンス
 
