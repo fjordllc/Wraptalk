@@ -58,6 +58,8 @@ utils.js ──┬──────────┤
 
 ## 音声処理チェーン
 
+このチェーンは **ブラウザ版 (`web/filter.js`) とシェル版 (`podcast_auto.sh`) で共通**。シェル版固有の差分 — de-esser の `mode=cut`(ブラウザ) vs `mode=cutabove`(システム ffmpeg 7+/8)、`--duck-level` が intro/outro 共通、BGM フェードはオプトイン — は「シェル版のメンテナンスポリシー」を参照。
+
 ### トーク (speech)
 ```
 aformat (mono, 44.1kHz)
