@@ -60,24 +60,34 @@ Passthrough to podcast_auto.sh (omit to use its defaults):
 EOF
 }
 
+# Error out with usage if a value-taking flag has no argument, instead of
+# letting `set -u` raise a bare "unbound variable" / shift error. $1 = $#.
+need_val() {
+  if [[ "$1" -lt 2 ]]; then
+    echo "Missing value for $2" >&2
+    usage
+    exit 1
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --in-dir) IN_DIR="$2"; shift 2 ;;
-    --out-dir) OUT_DIR="$2"; shift 2 ;;
-    --intro) INTRO="$2"; shift 2 ;;
-    --outro) OUTRO="$2"; shift 2 ;;
-    --interval) INTERVAL="$2"; shift 2 ;;
+    --in-dir) need_val "$#" "$1"; IN_DIR="$2"; shift 2 ;;
+    --out-dir) need_val "$#" "$1"; OUT_DIR="$2"; shift 2 ;;
+    --intro) need_val "$#" "$1"; INTRO="$2"; shift 2 ;;
+    --outro) need_val "$#" "$1"; OUTRO="$2"; shift 2 ;;
+    --interval) need_val "$#" "$1"; INTERVAL="$2"; shift 2 ;;
     --once) ONCE=true; shift ;;
-    --intro-pad) INTRO_PAD="$2"; shift 2 ;;
-    --outro-overlap) OUTRO_OVERLAP="$2"; shift 2 ;;
-    --voice-lufs) VOICE_LUFS="$2"; shift 2 ;;
-    --music-volume) MUSIC_VOLUME="$2"; shift 2 ;;
-    --duck-level) DUCK_LEVEL="$2"; shift 2 ;;
-    --intro-fade-start) INTRO_FADE_START="$2"; shift 2 ;;
-    --intro-fade-end) INTRO_FADE_END="$2"; shift 2 ;;
-    --outro-fade-start) OUTRO_FADE_START="$2"; shift 2 ;;
-    --outro-fade-end) OUTRO_FADE_END="$2"; shift 2 ;;
-    --mp3-bitrate) MP3_BITRATE="$2"; shift 2 ;;
+    --intro-pad) need_val "$#" "$1"; INTRO_PAD="$2"; shift 2 ;;
+    --outro-overlap) need_val "$#" "$1"; OUTRO_OVERLAP="$2"; shift 2 ;;
+    --voice-lufs) need_val "$#" "$1"; VOICE_LUFS="$2"; shift 2 ;;
+    --music-volume) need_val "$#" "$1"; MUSIC_VOLUME="$2"; shift 2 ;;
+    --duck-level) need_val "$#" "$1"; DUCK_LEVEL="$2"; shift 2 ;;
+    --intro-fade-start) need_val "$#" "$1"; INTRO_FADE_START="$2"; shift 2 ;;
+    --intro-fade-end) need_val "$#" "$1"; INTRO_FADE_END="$2"; shift 2 ;;
+    --outro-fade-start) need_val "$#" "$1"; OUTRO_FADE_START="$2"; shift 2 ;;
+    --outro-fade-end) need_val "$#" "$1"; OUTRO_FADE_END="$2"; shift 2 ;;
+    --mp3-bitrate) need_val "$#" "$1"; MP3_BITRATE="$2"; shift 2 ;;
     --help) usage; exit 0 ;;
     *)
       echo "Unknown option: $1" >&2
@@ -161,20 +171,41 @@ add_arg --outro-fade-start "$OUTRO_FADE_START"
 add_arg --outro-fade-end "$OUTRO_FADE_END"
 add_arg --mp3-bitrate "$MP3_BITRATE"
 
+# Return a path that doesn't exist yet, inserting -1 / -2 / ... before the
+# extension. Re-dropping a same-named recording (recording.m4a, meeting.mp4 …)
+# is common in watch use, so this stops a new run from overwriting an earlier
+# output or an already-archived input.
+unique_path() {
+  local path="$1" dir base ext stem n cand
+  [[ -e "$path" ]] || { printf '%s' "$path"; return; }
+  dir="$(dirname "$path")"
+  base="$(basename "$path")"
+  ext="${base##*.}"
+  stem="${base%.*}"
+  n=1
+  while :; do
+    cand="$dir/${stem}-${n}.${ext}"
+    [[ -e "$cand" ]] || { printf '%s' "$cand"; return; }
+    n=$((n + 1))
+  done
+}
+
 process_file() {
-  local input="$1" stem out
+  local input="$1" stem out dest
   stem="$(basename "$input")"
   stem="${stem%.*}"
-  out="$OUT_DIR/${stem}_final.mp3"
+  out="$(unique_path "$OUT_DIR/${stem}_final.mp3")"
   log "processing: $input -> $out"
   if "$AUTO" --input "$input" --intro "$INTRO" --outro "$OUTRO" --output "$out" \
        ${AUTO_ARGS[@]+"${AUTO_ARGS[@]}"} >>"$LOG_FILE" 2>&1; then
     log "done: $out"
     # Guard the move: a failed mv must not abort the daemon under `set -e`.
-    mv -f "$input" "$IN_DIR/done/" 2>/dev/null || log "warn: could not move to done/: $input"
+    dest="$(unique_path "$IN_DIR/done/$(basename "$input")")"
+    mv -f "$input" "$dest" 2>/dev/null || log "warn: could not move to done/: $input"
   else
     log "FAILED: $input (details above in the log)"
-    mv -f "$input" "$IN_DIR/failed/" 2>/dev/null || log "warn: could not move to failed/: $input"
+    dest="$(unique_path "$IN_DIR/failed/$(basename "$input")")"
+    mv -f "$input" "$dest" 2>/dev/null || log "warn: could not move to failed/: $input"
   fi
 }
 

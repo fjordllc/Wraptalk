@@ -56,16 +56,26 @@ Logs once installed:
 EOF
 }
 
+# Error out with usage if a value-taking flag has no argument, instead of
+# letting `set -u` raise a bare "unbound variable" / shift error. $1 = $#.
+need_val() {
+  if [[ "$1" -lt 2 ]]; then
+    echo "Missing value for $2" >&2
+    usage
+    exit 1
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --in-dir) IN_DIR="$2"; shift 2 ;;
-    --out-dir) OUT_DIR="$2"; shift 2 ;;
-    --label) LABEL="$2"; shift 2 ;;
+    --in-dir) need_val "$#" "$1"; IN_DIR="$2"; shift 2 ;;
+    --out-dir) need_val "$#" "$1"; OUT_DIR="$2"; shift 2 ;;
+    --label) need_val "$#" "$1"; LABEL="$2"; shift 2 ;;
     --print) MODE="print"; shift ;;
     --uninstall) MODE="uninstall"; shift ;;
     # KEEP IN SYNC with podcast_watch.sh / podcast_auto.sh options (forwarded verbatim).
     --intro|--outro|--interval|--intro-pad|--outro-overlap|--voice-lufs|--music-volume|--duck-level|--intro-fade-start|--intro-fade-end|--outro-fade-start|--outro-fade-end|--mp3-bitrate)
-      add_pass "$1" "$2"; shift 2 ;;
+      need_val "$#" "$1"; add_pass "$1" "$2"; shift 2 ;;
     --help) usage; exit 0 ;;
     *)
       echo "Unknown option: $1" >&2

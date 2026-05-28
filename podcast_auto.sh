@@ -61,24 +61,34 @@ talk). The browser version always fades — pass these to match it.
 EOF
 }
 
+# Error out with usage if a value-taking flag has no argument, instead of
+# letting `set -u` raise a bare "unbound variable" / shift error. $1 = $#.
+need_val() {
+  if [[ "$1" -lt 2 ]]; then
+    echo "Missing value for $2" >&2
+    usage
+    exit 1
+  fi
+}
+
 # These options are the canonical set; podcast_watch.sh and install-watch-agent.sh
 # forward them verbatim, so keep those two in sync when adding one here.
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --input) INPUT="$2"; shift 2 ;;
-    --intro) INTRO="$2"; shift 2 ;;
-    --outro) OUTRO="$2"; shift 2 ;;
-    --output) OUTPUT="$2"; shift 2 ;;
-    --intro-pad) INTRO_PAD="$2"; shift 2 ;;
-    --outro-overlap) OUTRO_OVERLAP="$2"; shift 2 ;;
-    --voice-lufs) VOICE_LUFS="$2"; shift 2 ;;
-    --music-volume) MUSIC_VOLUME="$2"; shift 2 ;;
-    --duck-level) DUCK_LEVEL="$2"; shift 2 ;;
-    --intro-fade-start) INTRO_FADE_START="$2"; shift 2 ;;
-    --intro-fade-end) INTRO_FADE_END="$2"; shift 2 ;;
-    --outro-fade-start) OUTRO_FADE_START="$2"; shift 2 ;;
-    --outro-fade-end) OUTRO_FADE_END="$2"; shift 2 ;;
-    --mp3-bitrate) MP3_BITRATE="$2"; shift 2 ;;
+    --input) need_val "$#" "$1"; INPUT="$2"; shift 2 ;;
+    --intro) need_val "$#" "$1"; INTRO="$2"; shift 2 ;;
+    --outro) need_val "$#" "$1"; OUTRO="$2"; shift 2 ;;
+    --output) need_val "$#" "$1"; OUTPUT="$2"; shift 2 ;;
+    --intro-pad) need_val "$#" "$1"; INTRO_PAD="$2"; shift 2 ;;
+    --outro-overlap) need_val "$#" "$1"; OUTRO_OVERLAP="$2"; shift 2 ;;
+    --voice-lufs) need_val "$#" "$1"; VOICE_LUFS="$2"; shift 2 ;;
+    --music-volume) need_val "$#" "$1"; MUSIC_VOLUME="$2"; shift 2 ;;
+    --duck-level) need_val "$#" "$1"; DUCK_LEVEL="$2"; shift 2 ;;
+    --intro-fade-start) need_val "$#" "$1"; INTRO_FADE_START="$2"; shift 2 ;;
+    --intro-fade-end) need_val "$#" "$1"; INTRO_FADE_END="$2"; shift 2 ;;
+    --outro-fade-start) need_val "$#" "$1"; OUTRO_FADE_START="$2"; shift 2 ;;
+    --outro-fade-end) need_val "$#" "$1"; OUTRO_FADE_END="$2"; shift 2 ;;
+    --mp3-bitrate) need_val "$#" "$1"; MP3_BITRATE="$2"; shift 2 ;;
     --help) usage; exit 0 ;;
     *)
       echo "Unknown option: $1" >&2

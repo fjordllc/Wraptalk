@@ -139,7 +139,7 @@ Cross-Origin-Embedder-Policy: require-corp
 
 ### 前提
 
-`ffmpeg` と `ffprobe` が必要です（Homebrew なら `brew install ffmpeg`）。
+`ffmpeg` と `ffprobe` が必要です（Homebrew なら `brew install ffmpeg`）。de-esser に `adynamicequalizer:mode=cutabove` を使うため、**ffmpeg 7 以降**（Homebrew の最新版で OK）を推奨します。古い ffmpeg では `mode` の値が異なりエラーになることがあります。
 
 ### 起動方法
 

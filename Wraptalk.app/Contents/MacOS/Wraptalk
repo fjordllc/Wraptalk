@@ -72,7 +72,7 @@ if ! INPUT_FILE="$(choose_file "Google Meet の録画 mp4 を選んでくださ�
 fi
 
 if [[ -f "$DEFAULT_INTRO" ]]; then
-  if [[ "$(ask_use_default_audio "intro.mp3")" == "使う" ]]; then
+  if [[ "$(ask_use_default_audio "$(basename "$DEFAULT_INTRO")")" == "使う" ]]; then
     INTRO_FILE="$DEFAULT_INTRO"
   else
     INTRO_FILE="$(choose_file "イントロBGMを選んでください")" || exit 0
@@ -82,7 +82,7 @@ else
 fi
 
 if [[ -f "$DEFAULT_OUTRO" ]]; then
-  if [[ "$(ask_use_default_audio "outro.mp3")" == "使う" ]]; then
+  if [[ "$(ask_use_default_audio "$(basename "$DEFAULT_OUTRO")")" == "使う" ]]; then
     OUTRO_FILE="$DEFAULT_OUTRO"
   else
     OUTRO_FILE="$(choose_file "エンディングBGMを選んでください")" || exit 0
