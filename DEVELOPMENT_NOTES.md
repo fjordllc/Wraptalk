@@ -45,7 +45,7 @@ utils.js ──┬──────────┤
 
 - `PreviewController` (preview.js) — 波形 + プレビューを統合するコントローラ。1つのメディア要素単位
 - `PreviewSession` (preview.js, singleton) — 現在再生中の preview を追跡。private field でアクセス制御
-- `FfmpegRuntime` (mix.js, singleton) — FFmpeg のライフサイクル管理。`configure / isLoaded / ensureLoaded / writeFile / exec / readFile / deleteFile / cleanupFiles`
+- `FfmpegRuntime` (mix.js, singleton) — FFmpeg のライフサイクル管理。公開 API は `configure / isLoaded / ensureLoaded / withLock(fn)` のみ。fs/exec 操作 (`writeFile / exec / readFile / deleteFile / cleanupFiles`) は `withLock(fn)` の callback に渡される **session** 経由でのみ呼べる（callback 終了で session は invalidate される）。詳細は Architectural Decisions 参照
 
 ## Tests
 

@@ -287,6 +287,10 @@ export class PreviewController {
     await new Promise((resolve, reject) => {
       audio.addEventListener("loadedmetadata", () => resolve(), { once: true, signal });
       audio.addEventListener("error", () => reject(new Error("プレビュー音源を読み込めませんでした。")), { once: true, signal });
+      // If #releaseAudio() aborts the signal while we're waiting, the two
+      // listeners above are detached and would never settle this Promise —
+      // reject explicitly with the abort sentinel so the awaiter unblocks.
+      signal.addEventListener("abort", () => reject(new Error(ABORT_ERROR_MESSAGE)), { once: true });
     });
 
     // Bail out when a later prepare() on THIS controller has superseded us,
