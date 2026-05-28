@@ -135,15 +135,61 @@ Cross-Origin-Embedder-Policy: require-corp
 
 ## レガシー: シェル版 / Mac アプリ版
 
-長尺（60 分超）の mp4 をローカルの ffmpeg で確実に処理したい場合のフォールバック。`podcast_auto.sh` を直接、または `Wraptalk.app` をダブルクリックで起動。
+長尺（60 分超）の mp4 をローカルの ffmpeg で確実に処理したい場合のフォールバックです。音声処理チェーンはブラウザ版に揃えてあります（時刻ベース Ducking・de-esser・擬似ステレオ・BGM フェードアウト・最終リミッター）。ブラウザ版との意図的な差分は、intro/outro 共通の `--duck-level` 1 つと、トークの使用範囲トリムが無い、の 2 点だけです。
 
-音声処理チェーンはブラウザ版に揃えてあります（時刻ベース Ducking・de-esser・擬似ステレオ・BGM フェードアウト・最終リミッター）。意図的な差分は、intro/outro 共通の `--duck-level` 1 つと、トーク使用範囲トリム無しの 2 点です。
+### 前提
 
-- 必要: `ffmpeg`, `ffprobe`(`/opt/homebrew/bin/` などにインストール済み)
-- 直接実行: `./podcast_auto.sh --input ... --intro ... --outro ... --output ...`
-- 主要オプション: `--intro-pad`, `--outro-overlap`, `--voice-lufs`, `--music-volume`（基本音量 0-1、既定 1.0）, `--duck-level`（トーク中音量 0-1、既定 0.3）, `--mp3-bitrate`
-- BGM フェードアウト（任意）: `--intro-fade-start/end`, `--outro-fade-start/end`（BGM ソース秒。start と end の両方を指定したとき有効。未指定なら BGM は全長）
-- `Wraptalk.app` はダイアログ操作だけで完結
+`ffmpeg` と `ffprobe` が必要です（Homebrew なら `brew install ffmpeg`）。
+
+### 起動方法
+
+**1. CLI で直接実行**
+
+```bash
+./podcast_auto.sh \
+  --input episode.mp4 \
+  --intro opening.wav \
+  --outro ending.wav \
+  --output episode_final.mp3
+```
+
+**2. `Wraptalk.app` をダブルクリック**
+
+ダイアログで「録画ファイル → イントロ → アウトロ → 出力先 → 冒頭の尺 → 重ねる尺」を順に選ぶだけで完結します。イントロ / アウトロは「使う」を選べばリポジトリ直下の `opening.wav` / `ending.wav` が既定で使われます。フェードや `--duck-level` などの細かい指定は CLI のみです。
+
+### オプション
+
+| オプション | 意味 | 既定 |
+|---|---|---|
+| `--input PATH` | トーク音源（mp4 / 音声）※必須 | — |
+| `--intro PATH` / `--outro PATH` | イントロ / アウトロ BGM ※必須 | — |
+| `--output PATH` | 出力 mp3 のパス ※必須 | — |
+| `--intro-pad SEC` | イントロを単独で流す秒数（この後トークが乗る） | `2.0` |
+| `--outro-overlap SEC` | アウトロ頭からこの秒数の地点でトークが終わる | `8.0` |
+| `--voice-lufs N` | 話し声のラウドネス目標 LUFS | `-16` |
+| `--music-volume 0-1` | BGM の基本音量（ブラウザの 100% = `1.0`） | `1.0` |
+| `--duck-level 0-1` | トーク中の BGM 音量（`0.3` = 30%） | `0.3` |
+| `--intro-fade-start/end SEC` | イントロ BGM のフェードアウト区間（任意・両方指定で有効） | なし |
+| `--outro-fade-start/end SEC` | アウトロ BGM のフェードアウト区間（任意・両方指定で有効／末尾の無音もカット） | なし |
+| `--mp3-bitrate VALUE` | 出力ビットレート | `128k` |
+
+`./podcast_auto.sh --help` でも一覧を表示します。
+
+### 例（ブラウザ版の既定値に寄せてフェードも付ける）
+
+```bash
+./podcast_auto.sh --input ep.mp4 --intro opening.wav --outro ending.wav \
+  --output ep_final.mp3 \
+  --intro-pad 10 --outro-overlap 8 \
+  --intro-fade-start 26 --intro-fade-end 29 \
+  --outro-fade-start 114 --outro-fade-end 118
+```
+
+### 注意
+
+- `--intro-pad` や `--*-fade-*` の秒数は **各 BGM 音源内の時刻**です（ミックス後の通算ではありません）。
+- フェードは start / end の **両方**を指定したときだけ有効です。
+- `--music-volume` の既定は `1.0`（ブラウザ版に合わせています）なので、旧シェル版より BGM が大きく感じます。控えめにしたいときは `--music-volume 0.22` のように下げてください。
 
 ## 次にやると良いこと
 
