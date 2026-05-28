@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   clamp01,
+  percentToGain,
   assertInRange,
   extFromName,
   formatTime,
@@ -155,4 +156,11 @@ test("isNetworkLikeError: handles non-Error values", () => {
   assert.equal(isNetworkLikeError("some other reason"), false);
   assert.equal(isNetworkLikeError(null), false);
   assert.equal(isNetworkLikeError(undefined), false);
+});
+
+test("percentToGain: maps 0-100 to 0-1", () => {
+  assert.equal(percentToGain(0), 0);
+  assert.equal(percentToGain(100), 1);
+  assert.equal(percentToGain(22), 0.22);
+  assert.equal(percentToGain(30), 0.3);
 });

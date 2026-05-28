@@ -15,6 +15,7 @@ import {
   parseNumberInput,
   parseOptionalNumber,
   parseRequiredNumber,
+  percentToGain,
 } from "./utils.js";
 import {
   PreviewController,
@@ -260,19 +261,21 @@ async function readMixSpec() {
   // Single source of truth for the numeric ranges. Mirrors the HTML
   // min/max attrs on the corresponding inputs. Update both if the bounds
   // ever move so the browser-level and submit-time validation stay in sync.
+  // `percent: true` inputs are 0-100 in the UI and converted to a 0-1 gain
+  // via percentToGain (same helper the preview path uses).
   const rangedInputs = [
     { key: "introPad", input: introPadInput, label: "イントロの開始位置", min: 0, max: 600 },
     { key: "outroOverlap", input: outroOverlapInput, label: "アウトロの開始位置", min: 0, max: 600 },
     { key: "voiceLufs", input: voiceLufsInput, label: "話し声の目標LUFS", min: -40, max: -8 },
-    { key: "introMusicVolume", input: introMusicVolumeInput, label: "イントロの基本音量", min: 0, max: 100, scale: 1 / 100 },
-    { key: "outroMusicVolume", input: outroMusicVolumeInput, label: "アウトロの基本音量", min: 0, max: 100, scale: 1 / 100 },
-    { key: "introDuckLevel", input: introDuckLevelInput, label: "イントロのトーク中音量", min: 0, max: 100, scale: 1 / 100 },
-    { key: "outroDuckLevel", input: outroDuckLevelInput, label: "アウトロのトーク中音量", min: 0, max: 100, scale: 1 / 100 },
+    { key: "introMusicVolume", input: introMusicVolumeInput, label: "イントロの基本音量", min: 0, max: 100, percent: true },
+    { key: "outroMusicVolume", input: outroMusicVolumeInput, label: "アウトロの基本音量", min: 0, max: 100, percent: true },
+    { key: "introDuckLevel", input: introDuckLevelInput, label: "イントロのトーク中音量", min: 0, max: 100, percent: true },
+    { key: "outroDuckLevel", input: outroDuckLevelInput, label: "アウトロのトーク中音量", min: 0, max: 100, percent: true },
   ];
   const ranged = {};
-  for (const { key, input: el, label, min, max, scale } of rangedInputs) {
+  for (const { key, input: el, label, min, max, percent } of rangedInputs) {
     const value = assertInRange(parseRequiredNumber(el.value, label), min, max, label);
-    ranged[key] = scale ? value * scale : value;
+    ranged[key] = percent ? percentToGain(value) : value;
   }
 
   return {

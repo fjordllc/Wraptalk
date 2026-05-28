@@ -45,6 +45,17 @@ export function clamp01(value) {
 }
 
 /**
+ * Convert a 0-100 percentage (as shown in the UI for volume inputs) into a
+ * 0-1 linear gain. Single source of truth so the preview path and the ffmpeg
+ * export path don't drift apart.
+ * @param {number} percent
+ * @returns {number}
+ */
+export function percentToGain(percent) {
+  return percent / 100;
+}
+
+/**
  * Format a duration (seconds) as `M:SS`. Non-finite or negative values render as `0:00`.
  * @param {number} seconds
  * @returns {string}
