@@ -5,8 +5,8 @@ set -euo pipefail
 APP_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK_DIR="$(dirname "$APP_ROOT")"
 SCRIPT_PATH="$WORK_DIR/podcast_auto.sh"
-DEFAULT_INTRO="$WORK_DIR/intro.mp3"
-DEFAULT_OUTRO="$WORK_DIR/outro.mp3"
+DEFAULT_INTRO="$WORK_DIR/opening.wav"
+DEFAULT_OUTRO="$WORK_DIR/ending.wav"
 
 osascript_run() {
   /usr/bin/osascript "$@"

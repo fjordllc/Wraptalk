@@ -719,7 +719,51 @@ for (const [input, controller] of inputBindings) {
   });
 }
 
-const SETTINGS_STORAGE_KEY = "wraptalk:settings:v1";
+const SETTINGS_STORAGE_KEY = "wraptalk:settings:v2";
+const LEGACY_SETTINGS_KEY_V1 = "wraptalk:settings:v1";
+
+// v1 (0-1 linear) → v2 (0-100%) one-shot migration for the music volume inputs.
+// Run before restoreSettings so a returning user who had introMusicVolume: "0.22"
+// doesn't end up with the new input pegged at 0.22% (effectively silent).
+function migrateLegacySettings() {
+  let v1Raw;
+  try {
+    if (localStorage.getItem(SETTINGS_STORAGE_KEY) !== null) {
+      return;
+    }
+    v1Raw = localStorage.getItem(LEGACY_SETTINGS_KEY_V1);
+  } catch {
+    return;
+  }
+  if (!v1Raw) {
+    return;
+  }
+  let data;
+  try {
+    data = JSON.parse(v1Raw);
+  } catch {
+    return;
+  }
+  if (!data || typeof data !== "object") {
+    return;
+  }
+  for (const key of ["introMusicVolume", "outroMusicVolume"]) {
+    const value = data[key];
+    if (typeof value === "string") {
+      const num = Number(value);
+      // Old scale capped at 1; if it's at most 1 treat it as the legacy linear gain.
+      if (Number.isFinite(num) && num <= 1) {
+        data[key] = String(Math.round(num * 100));
+      }
+    }
+  }
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+    localStorage.removeItem(LEGACY_SETTINGS_KEY_V1);
+  } catch {
+    // ignore
+  }
+}
 
 // Inputs persisted across sessions (excludes file-derived trim and the file inputs themselves).
 const persistedInputs = [
@@ -790,6 +834,7 @@ function restoreSettings() {
   }
 }
 
+migrateLegacySettings();
 restoreSettings();
 for (const controller of previewControllers) {
   controller.updateUI();
