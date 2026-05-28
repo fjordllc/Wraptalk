@@ -63,6 +63,7 @@ while [[ $# -gt 0 ]]; do
     --label) LABEL="$2"; shift 2 ;;
     --print) MODE="print"; shift ;;
     --uninstall) MODE="uninstall"; shift ;;
+    # KEEP IN SYNC with podcast_watch.sh / podcast_auto.sh options (forwarded verbatim).
     --intro|--outro|--interval|--intro-pad|--outro-overlap|--voice-lufs|--music-volume|--duck-level|--intro-fade-start|--intro-fade-end|--outro-fade-start|--outro-fade-end|--mp3-bitrate)
       add_pass "$1" "$2"; shift 2 ;;
     --help) usage; exit 0 ;;
@@ -75,6 +76,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+
+# launchctl only exists on macOS. --print just emits XML, so it stays usable
+# anywhere; install/uninstall need launchctl.
+if [[ "$MODE" != "print" ]] && ! command -v launchctl >/dev/null 2>&1; then
+  echo "launchctl not found — this installer is macOS only." >&2
+  echo "Use --print to generate the plist for manual/other-OS setup." >&2
+  exit 1
+fi
 
 if [[ "$MODE" == "uninstall" ]]; then
   launchctl unload -w "$PLIST" 2>/dev/null || true

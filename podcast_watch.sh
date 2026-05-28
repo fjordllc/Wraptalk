@@ -108,6 +108,12 @@ for bgm in "$INTRO" "$OUTRO"; do
     exit 1
   fi
 done
+# Fail fast on a bad --interval rather than letting `sleep` abort mid-run under
+# `set -e`. Must be a positive number (integer or decimal).
+if ! awk -v v="$INTERVAL" 'BEGIN { exit !(v ~ /^[0-9]+(\.[0-9]+)?$/ && v + 0 > 0) }'; then
+  echo "Invalid --interval: '$INTERVAL' (must be a positive number)" >&2
+  exit 1
+fi
 
 mkdir -p "$OUT_DIR" "$IN_DIR/done" "$IN_DIR/failed"
 LOG_FILE="$OUT_DIR/watch.log"
@@ -127,13 +133,21 @@ is_supported() {
   esac
 }
 
-# Portable byte count (avoids stat -f/-c platform differences).
+# Portable byte count (avoids stat -f/-c platform differences). Never fails: a
+# file that vanished between the glob and here yields an empty string (the
+# caller then skips it) instead of aborting the whole watcher under `set -e`.
+# The group + 2>/dev/null also swallows the shell's open-failure message.
 file_size() {
-  wc -c < "$1" 2>/dev/null | tr -d '[:space:]'
+  local n
+  n="$( { wc -c < "$1"; } 2>/dev/null || true )"
+  printf '%s' "$n" | tr -d '[:space:]'
 }
 
 # Build the passthrough arg list once. bash 3.2-safe: expanded later with the
 # ${arr[@]+...} guard so an empty array doesn't trip `set -u`.
+# KEEP IN SYNC: this set mirrors podcast_auto.sh's options and the forwarded
+# list in install-watch-agent.sh. Add a new podcast_auto.sh option in all three
+# — a missing one here is silently dropped, not an error.
 AUTO_ARGS=()
 add_arg() { if [[ -n "$2" ]]; then AUTO_ARGS+=("$1" "$2"); fi; }
 add_arg --intro-pad "$INTRO_PAD"
@@ -155,11 +169,12 @@ process_file() {
   log "processing: $input -> $out"
   if "$AUTO" --input "$input" --intro "$INTRO" --outro "$OUTRO" --output "$out" \
        ${AUTO_ARGS[@]+"${AUTO_ARGS[@]}"} >>"$LOG_FILE" 2>&1; then
-    mv -f "$input" "$IN_DIR/done/"
     log "done: $out"
+    # Guard the move: a failed mv must not abort the daemon under `set -e`.
+    mv -f "$input" "$IN_DIR/done/" 2>/dev/null || log "warn: could not move to done/: $input"
   else
-    mv -f "$input" "$IN_DIR/failed/"
-    log "FAILED (moved to failed/): $input"
+    log "FAILED: $input (details above in the log)"
+    mv -f "$input" "$IN_DIR/failed/" 2>/dev/null || log "warn: could not move to failed/: $input"
   fi
 }
 

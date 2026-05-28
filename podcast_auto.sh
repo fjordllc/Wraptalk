@@ -61,6 +61,8 @@ talk). The browser version always fades — pass these to match it.
 EOF
 }
 
+# These options are the canonical set; podcast_watch.sh and install-watch-agent.sh
+# forward them verbatim, so keep those two in sync when adding one here.
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --input) INPUT="$2"; shift 2 ;;
@@ -130,7 +132,6 @@ to_ms_int() {
 }
 
 SPEECH_DURATION="$(duration_of "$INPUT")"
-INTRO_DURATION="$(duration_of "$INTRO")"
 
 INTRO_PAD="$(float_max "$INTRO_PAD" "0")"
 OUTRO_OVERLAP="$(float_max "$OUTRO_OVERLAP" "0")"
