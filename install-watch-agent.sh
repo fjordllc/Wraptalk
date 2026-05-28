@@ -85,6 +85,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ ! "$LABEL" =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "Invalid --label: '$LABEL'" >&2
+  echo "Use only letters, numbers, dots, underscores, and hyphens." >&2
+  exit 1
+fi
+
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 
 # launchctl only exists on macOS. --print just emits XML, so it stays usable

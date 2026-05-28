@@ -8,7 +8,7 @@
   - `@ffmpeg/ffmpeg` + `@ffmpeg/util` は `vendor/` にコミット
   - `@ffmpeg/core` (32MB の wasm) は jsDelivr CDN から読み込み（Cloudflare Pages の 1 ファイル 25MiB 制限回避）
 - スタイル: `web/styles.css` 単一ファイル + ITCSS 風プリフィックス命名
-- JS: ES Module で分割（`web/{app,dom,utils,waveform,waveform-loader,preview,mix,filter}.js`）+ `web/*.test.js` × 3
+- JS: ES Module で分割（`web/{app,dom,utils,waveform,waveform-loader,preview,mix,filter}.js`）+ `web/*.test.js` × 4
 - デフォルト音源は `opening.wav` / `ending.wav` をリポジトリ直下に配置
 - ライセンス: MIT
 - 旧来のシェル版 `podcast_auto.sh` と `Wraptalk.app` は長尺フォールバックとして残置
@@ -49,7 +49,7 @@ utils.js ──┬──────────┤
 
 ## Tests
 
-`web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (77 ケース)。
+`web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (84 ケース)。
 
 - `web/filter.test.js` — buildFilter / buildOpeningPreviewFilter / buildEndingPreviewFilter のロジック + 構造アサーション
 - `web/mix.test.js` — outputNameFromInput / computeMixTimings / buildPreviewFilter の純関数テスト
