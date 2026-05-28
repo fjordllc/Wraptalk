@@ -124,6 +124,10 @@ aformat (stereo, 44.1kHz)
 
 jsDelivr は `Access-Control-Allow-Origin: *` + `Cross-Origin-Resource-Policy: cross-origin` を返すので COEP 下でも問題なく読める。
 
+#### vendor 更新時の注意
+
+`vendor/{ffmpeg,util}` は `node_modules/@ffmpeg/{ffmpeg,util}/dist/esm` を手動コピーしたもの。コピーし直す際は **`vendor/ffmpeg/dist/esm/package.json` と `vendor/util/dist/esm/package.json`（中身は `{ "type": "module" }` だけ）を必ず残すこと**。これが無いと `node --test` が `MODULE_TYPELESS_PACKAGE_JSON` 警告を出す（ルートの `package.json` の `"type": "module"` はこのネストには効かない）。`.gitignore` の `dist/` は `/dist/` にアンカー済みなので `vendor/*/dist` は無視されない。
+
 ### build スクリプト
 ```bash
 npm run build
@@ -197,7 +201,7 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 ### P2
 
 - ~~**進捗メッセージの細分化**~~ ✅ 完了 (2026-05)。ステージごとに setStatus + ffmpeg の onProgress を読んで `音声処理中... 35%` のように表示
-- **アクセシビリティ** — `form` / `fieldset` / `legend` でフォームグルーピング (一部対応: modal focus trap、ハンドル focus halo、jump ボタン aria-label)
+- **アクセシビリティ** — 設定入力の名前付けは対応済み (2026-05): `使用範囲` / フェードの開始・終了は `<label for>` + `aria-labelledby="<カード見出しid> <フィールドラベルid>"` で「使用範囲 開始位置」のように合成名を持たせ、`introPad` / `outroOverlap` は `aria-labelledby` でカード見出しを名前に。modal focus trap / ハンドル focus halo / jump ボタン aria-label は既存。**`fieldset`/`legend` は意図的に不採用** — `display:contents` で見た目を崩さず使おうとすると一部ブラウザで要素が a11y ツリーから消える既知問題があり、グルーピングは `aria-labelledby` 合成で代替した。`<form>` ラッパーも見送り (単一アクションのページで利得が薄く、`loadButton` が submit 化する罠を避けるため)。残: 波形 canvas 自体はマウス/ポインタ専用 (数値入力 + ◉ + jump ボタンがキーボード代替)
 - **preview 音源のクリーンアップ** — オブジェクト URL のライフサイクルをファイル切替時 / 反復再生時の観点で再点検
 
 ### P3
@@ -228,6 +232,7 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 
 直近作業の履歴。
 
+- 2026-05: レビュー対応一括 (3rd pass)。(1) `resizeWaveformCanvas` の `canvas.width` 代入を寸法変化時のみに絞り、再生中 (timeupdate ~4Hz の drawWaveform) のバッファ全リセットを回避。(2) v1→v2 音量移行の変換コアを `migrateMusicVolumesV1toV2` 純関数として utils に切り出しユニットテスト 5 件追加、duckLevel を含めない理由を関数 doc に明記。(3) `getMediaDurationSeconds` を File 参照キーの WeakMap でメモ化 (opening/ending/書き出しで同一 File を 3 回デコードしていた)。(4) 設定入力に `<label for>` + `aria-labelledby` 合成名を付与 (アクセシビリティ、上記 P2 参照)。(5) vendor の `dist/esm/package.json` 維持手順をドキュメント化
 - 2026-05: 基本音量を 0-1 リニア → **0-100% 表記**に変更 (デフォルト 100% = 音源そのまま)。`percentToGain` を utils に集約。localStorage は **v1→v2 移行**を実装し、旧 0-1 値を ×100 して引き継ぐ (移行しないと復帰ユーザーが無音になる)
 - 2026-05: キーボードショートカット (Space=再生切替 / , . =5秒シーク)。focused button / 入力欄 / モーダル中は無効。ヒーローのグローバル ⓘ から説明モーダル
 - 2026-05: info modal を `<template>` 化 (shell + 各 content template、`buildInfoModal` で生成)

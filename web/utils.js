@@ -56,6 +56,33 @@ export function percentToGain(percent) {
 }
 
 /**
+ * Migrate a v1 persisted-settings object to the v2 music-volume scale.
+ *
+ * Only `introMusicVolume` / `outroMusicVolume` changed scale between v1 (0-1
+ * linear gain) and v2 (0-100 percentage), so those are the only keys touched.
+ * Duck levels (`introDuckLevel` / `outroDuckLevel`) were ALREADY a percentage
+ * in v1 — do not add them here or returning users' values get double-converted
+ * (e.g. 30 → 0.3). Values above 1 can't be a legacy 0-1 gain, so they are left
+ * untouched (already a percent, or tampered). The input is not mutated; a new
+ * object is returned.
+ * @param {Record<string, unknown>} data
+ * @returns {Record<string, unknown>}
+ */
+export function migrateMusicVolumesV1toV2(data) {
+  const next = { ...data };
+  for (const key of ["introMusicVolume", "outroMusicVolume"]) {
+    const value = next[key];
+    if (typeof value === "string") {
+      const num = Number(value);
+      if (Number.isFinite(num) && num <= 1) {
+        next[key] = String(Math.round(num * 100));
+      }
+    }
+  }
+  return next;
+}
+
+/**
  * Format a duration (seconds) as `M:SS`. Non-finite or negative values render as `0:00`.
  * @param {number} seconds
  * @returns {string}

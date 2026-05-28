@@ -417,8 +417,19 @@ export async function runMix(spec) {
   });
 }
 
+// A File's duration never changes, so cache it keyed on the File reference.
+// A user clicking opening-preview → ending-preview → export probes the same
+// talk File three times otherwise. WeakMap so dropped Files are collected.
+const durationCache = new WeakMap();
+
 export async function getMediaDurationSeconds(source) {
-  return await new Promise((resolve, reject) => {
+  if (source instanceof File) {
+    const cached = durationCache.get(source);
+    if (cached !== undefined) {
+      return cached;
+    }
+  }
+  const duration = await new Promise((resolve, reject) => {
     const media = document.createElement("audio");
     let objectUrl = null;
 
@@ -455,4 +466,8 @@ export async function getMediaDurationSeconds(source) {
       media.src = source;
     }
   });
+  if (source instanceof File) {
+    durationCache.set(source, duration);
+  }
+  return duration;
 }

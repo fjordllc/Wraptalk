@@ -8,6 +8,7 @@ import {
   extFromName,
   formatTime,
   isNetworkLikeError,
+  migrateMusicVolumesV1toV2,
   parseNumberInput,
   parseOptionalNumber,
   parseRequiredNumber,
@@ -163,4 +164,36 @@ test("percentToGain: maps 0-100 to 0-1", () => {
   assert.equal(percentToGain(100), 1);
   assert.equal(percentToGain(22), 0.22);
   assert.equal(percentToGain(30), 0.3);
+});
+
+test("migrateMusicVolumesV1toV2: scales legacy 0-1 music volumes to 0-100%", () => {
+  const out = migrateMusicVolumesV1toV2({ introMusicVolume: "0.22", outroMusicVolume: "0.5" });
+  assert.equal(out.introMusicVolume, "22");
+  assert.equal(out.outroMusicVolume, "50");
+});
+
+test("migrateMusicVolumesV1toV2: boundary values 0 and 1 convert to 0 and 100", () => {
+  const out = migrateMusicVolumesV1toV2({ introMusicVolume: "0", outroMusicVolume: "1" });
+  assert.equal(out.introMusicVolume, "0");
+  assert.equal(out.outroMusicVolume, "100");
+});
+
+test("migrateMusicVolumesV1toV2: values above 1 are left untouched (already percent or tampered)", () => {
+  const out = migrateMusicVolumesV1toV2({ introMusicVolume: "22", outroMusicVolume: "100" });
+  assert.equal(out.introMusicVolume, "22");
+  assert.equal(out.outroMusicVolume, "100");
+});
+
+test("migrateMusicVolumesV1toV2: does NOT touch duck levels (already percent in v1)", () => {
+  const out = migrateMusicVolumesV1toV2({ introDuckLevel: "30", outroDuckLevel: "30" });
+  assert.equal(out.introDuckLevel, "30");
+  assert.equal(out.outroDuckLevel, "30");
+});
+
+test("migrateMusicVolumesV1toV2: leaves missing / non-string keys alone and does not mutate input", () => {
+  const input = { voiceLufs: "-16" };
+  const out = migrateMusicVolumesV1toV2(input);
+  assert.equal(out.voiceLufs, "-16");
+  assert.equal(out.introMusicVolume, undefined);
+  assert.notEqual(out, input, "returns a new object");
 });

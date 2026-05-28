@@ -176,8 +176,18 @@ export function resizeWaveformCanvas(controller) {
   const baseWidth = Math.max(320, Math.round(scroller?.clientWidth || controller.canvas.clientWidth || 640));
   const zoom = getWaveformZoom(controller);
   const displayWidth = Math.min(MAX_CANVAS_WIDTH, Math.round(baseWidth * zoom));
-  controller.canvas.width = displayWidth;
-  controller.canvas.height = 88;
+  // Assigning canvas.width/height resets the backing store and clears the
+  // canvas even when the value is unchanged. drawWaveform() runs on every
+  // timeupdate (~4Hz) during playback, so only reassign the backing-store
+  // dimensions when they actually change; drawWaveform clears explicitly via
+  // clearRect anyway. The inline style writes are cheap (no realloc) and a
+  // no-op when the value is identical, so they stay unconditional.
+  if (controller.canvas.width !== displayWidth) {
+    controller.canvas.width = displayWidth;
+  }
+  if (controller.canvas.height !== 88) {
+    controller.canvas.height = 88;
+  }
   controller.canvas.style.width = `${displayWidth}px`;
   controller.canvas.style.minWidth = `${displayWidth}px`;
 }

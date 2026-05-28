@@ -12,6 +12,7 @@ import {
 import {
   assertInRange,
   isNetworkLikeError,
+  migrateMusicVolumesV1toV2,
   parseNumberInput,
   parseOptionalNumber,
   parseRequiredNumber,
@@ -765,18 +766,11 @@ function migrateLegacySettings() {
   if (!data || typeof data !== "object") {
     return;
   }
-  for (const key of ["introMusicVolume", "outroMusicVolume"]) {
-    const value = data[key];
-    if (typeof value === "string") {
-      const num = Number(value);
-      // Old scale capped at 1; if it's at most 1 treat it as the legacy linear gain.
-      if (Number.isFinite(num) && num <= 1) {
-        data[key] = String(Math.round(num * 100));
-      }
-    }
-  }
+  // Only the music-volume keys changed scale (0-1 → 0-100%); duck levels were
+  // already a percentage in v1. See migrateMusicVolumesV1toV2 for the rationale.
+  const migrated = migrateMusicVolumesV1toV2(data);
   try {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(migrated));
     localStorage.removeItem(LEGACY_SETTINGS_KEY_V1);
   } catch {
     // ignore

@@ -30,6 +30,11 @@
       </section>
 
       <section class="l--panel">
+        <!--
+          No <form> wrapper on purpose: this is a single-action page, and a form
+          would turn the type-less #loadButton into a submit button (Enter or
+          click would reload the page). Inputs are validated in readMixSpec().
+        -->
         <div class="l--grid">
           <section class="c--media-section" aria-labelledby="input-heading">
             <div class="l--section-header">
@@ -93,19 +98,27 @@
                   <button id="talkTrimInfoButton" class="c--info-button" type="button" aria-label="使用範囲 について">ⓘ</button>
                 </header>
                 <div class="c--setting-card-body">
+                  <!--
+                    Paired inputs are grouped via <label for> + aria-labelledby
+                    ="<card-title-id> <field-label-id>" (reads "使用範囲 開始位置")
+                    instead of fieldset/legend. A fieldset would need
+                    display:contents to keep this flex layout, and that can drop
+                    the element out of the a11y tree in some browsers — defeating
+                    the grouping it was added for. See DEVELOPMENT_NOTES P2.
+                  -->
                   <div class="l--setting-columns">
                     <div class="l--inline-setting">
-                      <p class="c--setting-field-label">開始位置</p>
+                      <label id="talkTrimStartLabel" class="c--setting-field-label" for="talkTrimStart">開始位置</label>
                       <div class="l--inline-setting-controls">
-                        <input id="talkTrimStart" type="number" min="0" step="0.1" value="0" />
+                        <input id="talkTrimStart" type="number" min="0" step="0.1" value="0" aria-labelledby="talk-trim-label talkTrimStartLabel" />
                         <button id="talkTrimStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                       </div>
                     </div>
                     <span class="c--range-separator" aria-hidden="true">〜</span>
                     <div class="l--inline-setting">
-                      <p class="c--setting-field-label">終了位置</p>
+                      <label id="talkTrimEndLabel" class="c--setting-field-label" for="talkTrimEnd">終了位置</label>
                       <div class="l--inline-setting-controls">
-                        <input id="talkTrimEnd" type="number" min="0" step="0.1" value="0" />
+                        <input id="talkTrimEnd" type="number" min="0" step="0.1" value="0" aria-labelledby="talk-trim-label talkTrimEndLabel" />
                         <button id="talkTrimEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                       </div>
                     </div>
@@ -189,7 +202,7 @@
                 <div class="c--setting-card-body">
                   <div class="l--inline-setting">
                     <div class="l--inline-setting-controls">
-                      <input id="introPad" type="number" min="0" max="600" step="0.1" value="10.0" />
+                      <input id="introPad" type="number" min="0" max="600" step="0.1" value="10.0" aria-labelledby="intro-pad-label" />
                       <button id="introPadSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                     </div>
                   </div>
@@ -203,17 +216,17 @@
                 <div class="c--setting-card-body">
                   <div class="l--setting-columns">
                     <div class="l--inline-setting">
-                      <p class="c--setting-field-label">開始位置</p>
+                      <label id="introFadeStartLabel" class="c--setting-field-label" for="introFadeStart">開始位置</label>
                       <div class="l--inline-setting-controls">
-                        <input id="introFadeStart" type="number" min="0" step="0.1" value="26.0" />
+                        <input id="introFadeStart" type="number" min="0" step="0.1" value="26.0" aria-labelledby="intro-fade-label introFadeStartLabel" />
                         <button id="introFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                       </div>
                     </div>
                     <span class="c--range-separator" aria-hidden="true">〜</span>
                     <div class="l--inline-setting">
-                      <p class="c--setting-field-label">終了位置</p>
+                      <label id="introFadeEndLabel" class="c--setting-field-label" for="introFadeEnd">終了位置</label>
                       <div class="l--inline-setting-controls">
-                        <input id="introFadeEnd" type="number" min="0" step="0.1" value="29.0" />
+                        <input id="introFadeEnd" type="number" min="0" step="0.1" value="29.0" aria-labelledby="intro-fade-label introFadeEndLabel" />
                         <button id="introFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                       </div>
                     </div>
@@ -296,7 +309,7 @@
                 <div class="c--setting-card-body">
                   <div class="l--inline-setting">
                     <div class="l--inline-setting-controls">
-                      <input id="outroOverlap" type="number" min="0" max="600" step="0.1" value="98.0" />
+                      <input id="outroOverlap" type="number" min="0" max="600" step="0.1" value="98.0" aria-labelledby="outro-overlap-label" />
                       <button id="outroOverlapSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                     </div>
                   </div>
@@ -310,17 +323,17 @@
                 <div class="c--setting-card-body">
                   <div class="l--setting-columns">
                     <div class="l--inline-setting">
-                      <p class="c--setting-field-label">開始位置</p>
+                      <label id="outroFadeStartLabel" class="c--setting-field-label" for="outroFadeStart">開始位置</label>
                       <div class="l--inline-setting-controls">
-                        <input id="outroFadeStart" type="number" min="0" step="0.1" value="114.0" />
+                        <input id="outroFadeStart" type="number" min="0" step="0.1" value="114.0" aria-labelledby="outro-fade-label outroFadeStartLabel" />
                         <button id="outroFadeStartSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                       </div>
                     </div>
                     <span class="c--range-separator" aria-hidden="true">〜</span>
                     <div class="l--inline-setting">
-                      <p class="c--setting-field-label">終了位置</p>
+                      <label id="outroFadeEndLabel" class="c--setting-field-label" for="outroFadeEnd">終了位置</label>
                       <div class="l--inline-setting-controls">
-                        <input id="outroFadeEnd" type="number" min="0" step="0.1" value="118.0" />
+                        <input id="outroFadeEnd" type="number" min="0" step="0.1" value="118.0" aria-labelledby="outro-fade-label outroFadeEndLabel" />
                         <button id="outroFadeEndSetButton" class="c--preview-button c--preview-button-ghost" type="button" title="現在の位置" aria-label="現在の位置">◉</button>
                       </div>
                     </div>
