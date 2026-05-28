@@ -348,11 +348,12 @@ export class PreviewController {
       this.updateUI();
     };
     const handleError = () => {
-      if (this.objectUrl) {
-        URL.revokeObjectURL(this.objectUrl);
-        this.objectUrl = null;
+      // Only tear down if we still own this audio — a newer prepare() may have
+      // replaced it (its objectUrl was already revoked by #releaseAudio then).
+      // Route through #releaseAudio so abort + revoke + pause happen in one place.
+      if (this.audio === audio) {
+        this.#releaseAudio();
       }
-      this.audio = null;
       if (previewSession.isActiveAudio(audio)) {
         previewSession.stop();
       }

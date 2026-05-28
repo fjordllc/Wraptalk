@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 #
-# Legacy shell version of Wraptalk. The audio processing here does NOT match the
-# browser version (web/filter.js). The browser version uses time-based envelope
-# ducking, dynamic de-esser (adynamicequalizer), pseudo-stereo widening, and a
-# final alimiter. This script still uses an older chain (sidechain compressor +
-# static acompressor) and is kept only as a long-form fallback when a 60min+
-# mp4 is too heavy for ffmpeg.wasm. Output character will differ from the
-# browser version's mp3.
+# Legacy shell version of Wraptalk, kept as a long-form fallback for when a
+# 60min+ mp4 is too heavy for the browser's ffmpeg.wasm. The audio processing
+# chain is kept CLOSE to the browser version (web/filter.js): time-based volume
+# envelope ducking (no sidechain pumping), highpass 100Hz + 170Hz cut, loudnorm,
+# dynamic de-esser (adynamicequalizer), pseudo-stereo widening, and a final
+# alimiter. Intentional differences from the browser: a single --duck-level for
+# both intro/outro (no per-section levels), no BGM fade-out, and no talk-trim.
+# After changing the chain, verify the output by ear.
 
 set -euo pipefail
 
@@ -18,14 +19,8 @@ OUTPUT=""
 INTRO_PAD="2.0"
 OUTRO_OVERLAP="8.0"
 VOICE_LUFS="-16"
-MUSIC_VOLUME="0.22"
-SPEECH_HIGHPASS="80"
-SPEECH_LOWPASS="14000"
-COMP_THRESHOLD="0.09"
-COMP_RATIO="3"
-COMP_ATTACK="20"
-COMP_RELEASE="250"
-COMP_MAKEUP="2"
+MUSIC_VOLUME="1.0"
+DUCK_LEVEL="0.3"
 MP3_BITRATE="128k"
 
 usage() {
@@ -45,7 +40,9 @@ Options:
   --intro-pad SECONDS     Intro-only time before talk starts (default: 2.0)
   --outro-overlap SECONDS Seconds of outro that overlap talk (default: 8.0)
   --voice-lufs VALUE      Target loudness for speech (default: -16)
-  --music-volume VALUE    Music level multiplier (default: 0.22)
+  --music-volume VALUE    Base BGM gain, 0-1 (default: 1.0; matches the
+                          browser's 100% base volume)
+  --duck-level VALUE      BGM gain under talk, 0-1 (default: 0.3 = 30%)
   --mp3-bitrate VALUE     Output bitrate (default: 128k)
   --help                  Show this help
 EOF
@@ -61,6 +58,7 @@ while [[ $# -gt 0 ]]; do
     --outro-overlap) OUTRO_OVERLAP="$2"; shift 2 ;;
     --voice-lufs) VOICE_LUFS="$2"; shift 2 ;;
     --music-volume) MUSIC_VOLUME="$2"; shift 2 ;;
+    --duck-level) DUCK_LEVEL="$2"; shift 2 ;;
     --mp3-bitrate) MP3_BITRATE="$2"; shift 2 ;;
     --help) usage; exit 0 ;;
     *)
@@ -125,15 +123,43 @@ SPEECH_DELAY_MS="$(to_ms_int "$INTRO_PAD")"
 OUTRO_START_SEC="$(awk -v pad="$INTRO_PAD" -v speech="$SPEECH_DURATION" -v overlap="$OUTRO_OVERLAP" 'BEGIN { printf "%.3f", pad + speech - overlap }')"
 OUTRO_START_MS="$(to_ms_int "$OUTRO_START_SEC")"
 
+# Time-based ducking envelopes, mirroring web/filter.js buildIntroEnvelope /
+# buildOutroEnvelope (minus the BGM fade-out). DUCK_FADE_DUR = 0.4s. The volume
+# expression is single-quoted in the filtergraph below so its commas are
+# literal and need no backslash escaping. `t` is the BGM source time, evaluated
+# before the outro's adelay (so duckEnd is in source time, matching the browser).
+DUCK_LEVEL="$(float_max "$DUCK_LEVEL" "0")"
+DUCK_LEVEL="$(float_min "$DUCK_LEVEL" "1")"
+INTRO_ENV="$(awk -v duckStart="$INTRO_PAD" -v duckLevel="$DUCK_LEVEL" 'BEGIN {
+  if (duckStart <= 0) { printf "%g", duckLevel; exit }
+  fadeDur = (duckStart < 0.4) ? duckStart : 0.4
+  fadeBegin = duckStart - fadeDur
+  oneMinus = 1 - duckLevel
+  printf "if(lt(t,%g),1,if(lt(t,%g),1-%g*(t-%g)/%g,%g))", fadeBegin, duckStart, oneMinus, fadeBegin, fadeDur, duckLevel
+}')"
+OUTRO_ENV="$(awk -v duckEnd="$OUTRO_OVERLAP" -v duckLevel="$DUCK_LEVEL" 'BEGIN {
+  if (duckEnd <= 0) { printf "1"; exit }
+  riseEnd = duckEnd + 0.4
+  oneMinus = 1 - duckLevel
+  printf "if(lt(t,%g),%g,if(lt(t,%g),%g+%g*(t-%g)/0.4,1))", duckEnd, duckLevel, riseEnd, duckLevel, oneMinus, duckEnd
+}')"
+
+# Mirrors web/filter.js buildFilter: speech EQ + loudnorm + de-esser +
+# pseudo-stereo split, envelope-ducked intro/outro, 3-input amix, final limiter.
+# NOTE: the de-esser uses mode=cutabove here. The browser (ffmpeg-core 0.12.10)
+# uses the older mode=cut; system ffmpeg (7+/8) renamed that enum to cutbelow/
+# cutabove, and "cut sibilance when it exceeds threshold" maps to cutabove.
 FILTER_COMPLEX="
-[0:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=mono,highpass=f=${SPEECH_HIGHPASS},lowpass=f=${SPEECH_LOWPASS},acompressor=threshold=${COMP_THRESHOLD}:ratio=${COMP_RATIO}:attack=${COMP_ATTACK}:release=${COMP_RELEASE}:makeup=${COMP_MAKEUP},loudnorm=I=${VOICE_LUFS}:TP=-1.5:LRA=11[speech];
+[0:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=mono,highpass=f=100,lowpass=f=14000,equalizer=f=170:t=q:w=2:g=-3,loudnorm=I=${VOICE_LUFS}:TP=-2:LRA=11,adynamicequalizer=threshold=3:dfrequency=6500:dqfactor=2:tfrequency=6500:tqfactor=2:mode=cutabove:ratio=4:attack=5:release=50:makeup=0[speech_mono];
+[speech_mono]asplit=2[speech_l_src][speech_r_src];
+[speech_l_src]equalizer=f=3500:t=q:w=2:g=2,equalizer=f=325:t=q:w=2:g=-1[speech_l];
+[speech_r_src]equalizer=f=3500:t=q:w=2:g=-2,equalizer=f=325:t=q:w=2:g=1[speech_r];
+[speech_l][speech_r]join=inputs=2:channel_layout=stereo[speech];
 [speech]adelay=${SPEECH_DELAY_MS}|${SPEECH_DELAY_MS}[speech_delayed];
-[1:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${MUSIC_VOLUME}[intro_music];
-[intro_music][speech_delayed]sidechaincompress=threshold=0.04:ratio=10:attack=20:release=350:makeup=1[intro_ducked];
-[intro_ducked][speech_delayed]amix=inputs=2:duration=longest:normalize=0[with_intro];
-[2:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${MUSIC_VOLUME},adelay=${OUTRO_START_MS}|${OUTRO_START_MS}[outro_music];
-[outro_music][speech_delayed]sidechaincompress=threshold=0.04:ratio=10:attack=20:release=350:makeup=1[outro_ducked];
-[with_intro][outro_ducked]amix=inputs=2:duration=longest:normalize=0[out]
+[1:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${MUSIC_VOLUME},volume='${INTRO_ENV}':eval=frame[intro_music];
+[2:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${MUSIC_VOLUME},volume='${OUTRO_ENV}':eval=frame,adelay=${OUTRO_START_MS}|${OUTRO_START_MS}[outro_music];
+[speech_delayed][intro_music][outro_music]amix=inputs=3:duration=longest:normalize=0[mixed];
+[mixed]alimiter=limit=0.89:attack=5:release=50[out]
 "
 
 echo "Input:  $INPUT"
