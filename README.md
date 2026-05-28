@@ -137,11 +137,12 @@ Cross-Origin-Embedder-Policy: require-corp
 
 長尺（60 分超）の mp4 をローカルの ffmpeg で確実に処理したい場合のフォールバック。`podcast_auto.sh` を直接、または `Wraptalk.app` をダブルクリックで起動。
 
-音声処理チェーンはブラウザ版に揃えてあります（時刻ベース Ducking・de-esser・擬似ステレオ・最終リミッター）。意図的な差分は、intro/outro 共通の `--duck-level` 1 つ・BGM フェードアウト無し・トーク使用範囲トリム無しの 3 点です。
+音声処理チェーンはブラウザ版に揃えてあります（時刻ベース Ducking・de-esser・擬似ステレオ・BGM フェードアウト・最終リミッター）。意図的な差分は、intro/outro 共通の `--duck-level` 1 つと、トーク使用範囲トリム無しの 2 点です。
 
 - 必要: `ffmpeg`, `ffprobe`(`/opt/homebrew/bin/` などにインストール済み)
 - 直接実行: `./podcast_auto.sh --input ... --intro ... --outro ... --output ...`
 - 主要オプション: `--intro-pad`, `--outro-overlap`, `--voice-lufs`, `--music-volume`（基本音量 0-1、既定 1.0）, `--duck-level`（トーク中音量 0-1、既定 0.3）, `--mp3-bitrate`
+- BGM フェードアウト（任意）: `--intro-fade-start/end`, `--outro-fade-start/end`（BGM ソース秒。start と end の両方を指定したとき有効。未指定なら BGM は全長）
 - `Wraptalk.app` はダイアログ操作だけで完結
 
 ## 次にやると良いこと
