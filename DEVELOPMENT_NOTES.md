@@ -153,6 +153,8 @@ npm run build
 カーソルは動的に切替: ハンドル上 = `ew-resize`、それ以外 = `pointer`。
 ハンドル位置は数値入力欄からのタイプにもリアルタイムで追従（input event でコントローラの updateUI を発火）。
 
+**タッチ対応**: 操作は Pointer Events ベースなのでタッチでも発火する。canvas に `touch-action: pan-y` を付け、横ドラッグはハンドル操作 / シークに使い、縦スワイプはページスクロールに通す。ヒット判定は `pointerType !== "mouse"`（タッチ / ペン）のとき許容半径を 10→18px に広げる（`handleHitTolerance`）。ズームで横スクロールが要るときの「スワイプで横スクロール」はタッチでは効かない（横ドラッグがハンドル操作に取られる）ので、全体ズームでの編集を基本とする。※実端末での挙動は未検証 — `touch-action` と許容半径は仕様準拠の best-effort。
+
 ## クラス命名規則
 
 | プリフィックス | 用途 | 例 |
@@ -234,6 +236,7 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 
 直近作業の履歴。
 
+- 2026-05: 波形のタッチ対応。canvas に `touch-action: pan-y`（横ドラッグ＝ハンドル操作 / 縦スワイプ＝ページスクロール）、ヒット許容をタッチ / ペン時 10→18px に拡大（`handleHitTolerance`、テスト 2 件追加で計 84）。動作環境モーダルの「モバイル未検証」をタッチ編集対応＋書き出しはデスクトップ推奨に更新。※実端末検証は未
 - 2026-05: `install-watch-agent.sh` を追加。`podcast_watch.sh` を launchd LaunchAgent として常駐登録 (RunAtLoad + KeepAlive、PATH に Homebrew を含める、ログは out-dir)。`--print`/`--uninstall` 対応。生成 plist を `plutil -lint` で検証。README に「バックグラウンド常駐 (launchd)」節を追加し、`次にやると良いこと` の当該項目を消化
 - 2026-05: `podcast_watch.sh` を追加（フォルダ監視で動画 / 音声を自動バッチ処理）。ポーリング + サイズ安定待ち + `done/`/`failed/` 退避 + `watch.log`、`--once` 対応。音声入力はコア無改修で対応（`podcast_auto.sh` が `[0:a]` 使用）。シェル版ポリシーを「自動化系の補助ツールはシェル側に足してよい」へ微修正。README「次にやると良いこと」を更新
 - 2026-05: シェル版に BGM フェードアウトをオプトインで追加。`--intro-fade-start/end` `--outro-fade-start/end` で `(duck)*(fade)` envelope を適用 (ブラウザの buildIntro/OutroEnvelope と同型)。アウトロフェード時は `-t` で末尾無音をトリム。未指定なら従来どおりフェード無し。bash 3.2 (`/bin/bash`) で空配列展開 (`${TRIM_ARGS[@]+...}`) と `-t` トリムを検証

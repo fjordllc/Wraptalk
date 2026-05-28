@@ -392,6 +392,10 @@ h1 {
   display: block;
   height: 88px;
   cursor: default;
+  /* Let vertical swipes scroll the page, but keep horizontal drags for the
+     pointer handlers (handle drag / seek) instead of the browser eating them
+     as a scroll gesture on touch devices. */
+  touch-action: pan-y;
 }
 
 .c--waveform-time-axis {

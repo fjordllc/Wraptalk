@@ -410,6 +410,13 @@ export function getFadeHandlePositions(controller) {
   };
 }
 
+// Touch / pen are coarse pointers; give them a wider grab radius than a mouse
+// so handles are easier to catch with a fingertip. Synthetic test events have
+// no pointerType, so they keep the mouse value.
+function handleHitTolerance(event) {
+  return event?.pointerType && event.pointerType !== "mouse" ? 18 : 10;
+}
+
 export function getFadeHandleHit(controller, event) {
   const positions = getFadeHandlePositions(controller);
   if (!positions || !controller.canvas) {
@@ -423,10 +430,11 @@ export function getFadeHandleHit(controller, event) {
     return null;
   }
 
-  if (Math.abs(x - positions.startX) <= 10) {
+  const tol = handleHitTolerance(event);
+  if (Math.abs(x - positions.startX) <= tol) {
     return "start";
   }
-  if (Math.abs(x - positions.endX) <= 10) {
+  if (Math.abs(x - positions.endX) <= tol) {
     return "end";
   }
   return null;
@@ -458,7 +466,7 @@ export function getTargetHandleHit(controller, event) {
   if (y > 22) {
     return false;
   }
-  return Math.abs(x - position.x) <= 10;
+  return Math.abs(x - position.x) <= handleHitTolerance(event);
 }
 
 export function getTrimHandlePositions(controller) {
@@ -491,12 +499,13 @@ export function getTrimHandleHit(controller, event) {
     return null;
   }
 
+  const tol = handleHitTolerance(event);
   const startDist = Math.abs(x - positions.startX);
   const endDist = Math.abs(x - positions.endX);
-  if (startDist <= 10 && startDist <= endDist) {
+  if (startDist <= tol && startDist <= endDist) {
     return "start";
   }
-  if (endDist <= 10) {
+  if (endDist <= tol) {
     return "end";
   }
   return null;

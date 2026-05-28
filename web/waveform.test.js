@@ -135,3 +135,22 @@ test("getTrimHandleHit: returns null outside 10px tolerance", () => {
   // startX=50, endX=800, click in middle
   assert.equal(getTrimHandleHit(c, event(400, 10)), null);
 });
+
+function touchEvent(x, y) {
+  return { clientX: x, clientY: y, pointerType: "touch" };
+}
+
+test("hit tolerance widens for touch pointers", () => {
+  const c = makeController(); // fade start handle at x=100, bottom band
+  // 15px away: misses with a mouse (10px), catches with touch (18px).
+  assert.equal(getFadeHandleHit(c, event(115, HEIGHT - 5)), null);
+  assert.equal(getFadeHandleHit(c, touchEvent(115, HEIGHT - 5)), "start");
+});
+
+test("touch tolerance applies to target and trim handles too", () => {
+  const c = makeController(); // target at x=300 (top band), trim start at x=50
+  assert.equal(getTargetHandleHit(c, event(315, 10)), false);
+  assert.equal(getTargetHandleHit(c, touchEvent(315, 10)), true);
+  assert.equal(getTrimHandleHit(c, event(65, 10)), null);
+  assert.equal(getTrimHandleHit(c, touchEvent(65, 10)), "start");
+});
