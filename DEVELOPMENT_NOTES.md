@@ -15,16 +15,18 @@
 
 ## Module Layout (web/)
 
-| File | Lines | 役割 |
+行数は目安（実数値は `wc -l web/*.js` で確認）。実装変更ごとに毎回追従はしない。
+
+| File | Lines (目安) | 役割 |
 |------|-------|------|
-| `app.js` | 947 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群、modal focus trap、localStorage 永続化、設定リセット、D&D (accept 検証 + 拡張子 fallback)、ステッパー注入、`rangedInputs` schema で入力 validation |
-| `preview.js` | 691 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。jumps[] config で任意位置へジャンプ、ハンドル focus highlight 連動、`prepareToken` で per-controller の race 対策、`AbortController` で Audio リスナーを一括 cleanup |
-| `waveform.js` | 513 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替、時刻軸 (cache 付き)、focus halo。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
-| `mix.js` | 458 | `FfmpegRuntime` クラス (load promise + `withLock(fn)` で session を渡す排他制御)、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別)、`buildPreviewFilter` (純関数、テスト可能) |
-| `filter.js` | 211 | `buildFilter` / `buildOpeningPreviewFilter` / `buildEndingPreviewFilter` + envelope ヘルパー。Node からテスト可能 |
-| `dom.js` | 131 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
-| `utils.js` | 98 | 純粋関数 + JSDoc 型注釈付き (parse 系 / clamp / assertInRange / formatTime / extFromName / isNetworkLikeError) |
-| `waveform-loader.js` | 86 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード、`withLock` 内で atomic 化) |
+| `app.js` | ~1100 | エントリ。配線、ファイル選択、processAudio (DOM → spec → runMix → download)、handleLoadFFmpeg、info modal 群 (template から生成)、modal focus trap、キーボードショートカット、localStorage 永続化 (v1→v2 移行付き)、設定リセット、D&D (accept 検証 + 拡張子 fallback)、ステッパー注入、`rangedInputs` schema で入力 validation |
+| `preview.js` | ~690 | `PreviewController` / `PreviewSession` クラス。controller の `start()` でイベント配線も自己完結。jumps[] config で任意位置へジャンプ、ハンドル focus highlight 連動、`prepareToken` で per-controller の race 対策、`AbortController` で Audio リスナーを一括 cleanup |
+| `waveform.js` | ~510 | 波形描画、ズーム、ズームプリセット、各種ハンドルの位置計算 / hit-test、カーソル切替、時刻軸 (cache 付き)、focus halo。`MAX_CANVAS_WIDTH=30000` でブラウザ canvas 上限を回避 |
+| `mix.js` | ~460 | `FfmpegRuntime` クラス (load promise + `withLock(fn)` で session を渡す排他制御)、`runMix` (spec → mp3 blob)、`renderMixPreview(spec, kind)` (opening/ending 別)、`buildPreviewFilter` (純関数、テスト可能) |
+| `filter.js` | ~210 | `buildFilter` / `buildOpeningPreviewFilter` / `buildEndingPreviewFilter` + envelope ヘルパー。Node からテスト可能 |
+| `dom.js` | ~120 | 全 `getElementById` を集約、ラジオは `getMp3Bitrate()` 経由 |
+| `utils.js` | ~110 | 純粋関数 + JSDoc 型注釈付き (parse 系 / clamp / assertInRange / percentToGain / formatTime / extFromName / isNetworkLikeError) |
+| `waveform-loader.js` | ~86 | `loadAudioBuffer` (AudioContext + ffmpeg fallback デコード、`withLock` 内で atomic 化) |
 
 すべての JS ファイル冒頭に `// @ts-check` を付けて、JSDoc 型注釈で TS-aware エディタ上で型補完 + エラー検知が効くようになっている。
 
@@ -47,7 +49,7 @@ utils.js ──┬──────────┤
 
 ## Tests
 
-`web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (76 ケース)。
+`web/*.test.js` は `node:test` ベース。`npm test` で一括実行 (77 ケース)。
 
 - `web/filter.test.js` — buildFilter / buildOpeningPreviewFilter / buildEndingPreviewFilter のロジック + 構造アサーション
 - `web/mix.test.js` — outputNameFromInput / computeMixTimings / buildPreviewFilter の純関数テスト
@@ -226,6 +228,11 @@ alpha 違いは `rgba(var(--ink-rgb), 0.12)` のように RGB トリプルから
 
 直近作業の履歴。
 
+- 2026-05: 基本音量を 0-1 リニア → **0-100% 表記**に変更 (デフォルト 100% = 音源そのまま)。`percentToGain` を utils に集約。localStorage は **v1→v2 移行**を実装し、旧 0-1 値を ×100 して引き継ぐ (移行しないと復帰ユーザーが無音になる)
+- 2026-05: キーボードショートカット (Space=再生切替 / , . =5秒シーク)。focused button / 入力欄 / モーダル中は無効。ヒーローのグローバル ⓘ から説明モーダル
+- 2026-05: info modal を `<template>` 化 (shell + 各 content template、`buildInfoModal` で生成)
+- 2026-05: スマホ幅対応 (hero 縦積み + h1 clamp、media-toolbar / volume / jump を flex-wrap、footer 縦積み、modal を viewport 内に収め body スクロール)、各種ラベル/ボタン/時間表記を nowrap
+- 2026-05: Wraptalk.app のデフォルト音源を opening.wav / ending.wav に修正。DEVELOPMENT_NOTES の app 構成記述を実態 (bash + osascript) に訂正
 - 2026-05: ディレクトリ名を `Wraptone` → `Wraptalk` にリネーム
 - 2026-05: 波形にドラッグハンドル群を実装（トーク開始 / 終了位置、トーク使用範囲 = atrim、フェード開始 / 終了）。範囲外網掛け、カーソル動的切替
 - 2026-05: アウトロのフェード終了後の無音を ffmpeg の `-t` で自動カット
