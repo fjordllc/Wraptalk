@@ -122,7 +122,6 @@ import {
 ffmpegRuntime.configure({ onLog: appendLog, onProgress: setProgress });
 
 let currentStatusBase = "";
-let currentProgressPercent = 0;
 
 function renderStatus(base, percent) {
   const match = base.match(/^(.*?)(\.{3,})$/);
@@ -147,7 +146,6 @@ function renderStatus(base, percent) {
 
 function setStatus(message) {
   currentStatusBase = message;
-  currentProgressPercent = 0;
   renderStatus(message, 0);
 }
 
@@ -160,7 +158,6 @@ logToggle?.addEventListener("click", () => {
 function setProgress(progress) {
   const percent = Math.max(0, Math.min(100, Math.round(progress * 100)));
   meterBar.style.width = `${percent}%`;
-  currentProgressPercent = percent;
   if (currentStatusBase) {
     renderStatus(currentStatusBase, percent);
   }
@@ -412,6 +409,17 @@ function openActionModal() {
 
 function closeActionModal() {
   closeModal(actionModal);
+  // Release the mix-preview object URLs so a stale 30s clip isn't held in
+  // memory after the modal is dismissed; they're re-created on next preview.
+  for (const target of Object.values(previewClipTargets)) {
+    if (target.audio?.src) {
+      URL.revokeObjectURL(target.audio.src);
+      target.audio.removeAttribute("src");
+      target.audio.load();
+    }
+    target.wrapper?.classList.remove("is--visible");
+  }
+  mixPreviewBlock?.classList.remove("is--visible");
 }
 
 // Keyboard handling for the currently-open modal: Tab traps focus inside it,
